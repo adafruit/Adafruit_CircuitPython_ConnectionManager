@@ -6,7 +6,7 @@
 
 import mocket
 import pytest
-import adafruit_connectionmanager
+import adafruit_connection_manager
 
 IP = "1.2.3.4"
 HOST = "wifitest.adafruit.com"
@@ -21,7 +21,7 @@ def test_get_https_no_ssl():
     sock = mocket.Mocket(RESPONSE)
     pool.socket.return_value = sock
 
-    connection_manager = adafruit_connectionmanager.ConnectionManager(pool)
+    connection_manager = adafruit_connection_manager.ConnectionManager(pool)
     with pytest.raises(RuntimeError):
         connection_manager.get_socket(HOST, 443, "https:")
 
@@ -34,7 +34,7 @@ def test_connect_https():
 
     ssl = mocket.SSLContext()
 
-    connection_manager = adafruit_connectionmanager.ConnectionManager(pool)
+    connection_manager = adafruit_connection_manager.ConnectionManager(pool)
     connection_manager.get_socket(HOST, 443, "https:", ssl_context=ssl)
 
     sock.connect.assert_called_once_with((HOST, 443))
@@ -46,7 +46,7 @@ def test_connect_http():
     sock = mocket.Mocket(RESPONSE)
     pool.socket.return_value = sock
 
-    connection_manager = adafruit_connectionmanager.ConnectionManager(pool)
+    connection_manager = adafruit_connection_manager.ConnectionManager(pool)
     connection_manager.get_socket(HOST, 80, "http:")
 
     sock.connect.assert_called_once_with((IP, 80))

@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 """
-`adafruit_connectionmanager`
+`adafruit_connection_manager`
 ================================================================================
 
 A urllib3.poolmanager/urllib3.connectionpool-like library for managing sockets and connections
