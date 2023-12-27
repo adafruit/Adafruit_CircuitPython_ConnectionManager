@@ -29,6 +29,29 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_ConnectionManager
 import errno
 import sys
 
+
+# common helpers
+
+
+try:
+    import adafruit_logging as logging
+
+    logger = logging.getLogger("__name__")
+except ImportError:
+    # pylint: disable=too-few-public-methods
+    class NullLogger:
+        """Simple class to throw away log messages."""
+
+        def __init__(self) -> None:
+            for log_level in ["debug", "info", "warning", "error", "critical"]:
+                setattr(NullLogger, log_level, lambda *args, **kwargs: None)
+
+    logger = NullLogger()
+
+
+# typing
+
+
 if not sys.implementation.name == "circuitpython":
     from ssl import SSLContext
     from types import ModuleType
@@ -118,20 +141,26 @@ if not sys.implementation.name == "circuitpython":
     SSLContextType = Union[SSLContext, "_FakeSSLContext"]
 
 
-class SocketGetOSError(OSError):
-    """ConnectionManager Exception class."""
-
-
-class SocketGetRuntimeError(RuntimeError):
-    """ConnectionManager Exception class."""
+# custon exceptions
 
 
 class SocketConnectMemoryError(OSError):
-    """ConnectionManager Exception class."""
+    """ConnectionManager Exception class for an MemoryError when connecting a socket."""
 
 
 class SocketConnectOSError(OSError):
-    """ConnectionManager Exception class."""
+    """ConnectionManager Exception class for an OSError when connecting a socket."""
+
+
+class SocketGetOSError(OSError):
+    """ConnectionManager Exception class for an OSError when getting a socket."""
+
+
+class SocketGetRuntimeError(RuntimeError):
+    """ConnectionManager Exception class for an RuntimeError when getting a socket."""
+
+
+# classes
 
 
 class _FakeSSLSocket:
@@ -145,7 +174,7 @@ class _FakeSSLSocket:
         self.recv_into = socket.recv_into
 
     def connect(self, address: Tuple[str, int]) -> None:
-        """connect wrapper to add non-standard mode parameter"""
+        """Connect wrapper to add non-standard mode parameter"""
         try:
             return self._socket.connect(address, self._mode)
         except RuntimeError as error:
@@ -156,18 +185,18 @@ class _FakeSSLContext:
     def __init__(self, iface: InterfaceType) -> None:
         self._iface = iface
 
+    # pylint: disable=unused-argument
     def wrap_socket(
         self, socket: CircuitPythonSocketType, server_hostname: Optional[str] = None
     ) -> _FakeSSLSocket:
         """Return the same socket"""
-        # pylint: disable=unused-argument
         return _FakeSSLSocket(socket, self._iface.TLS_MODE)
 
 
 def create_fake_ssl_context(
     socket_pool: SocketpoolModuleType, iface: Optional[InterfaceType] = None
 ) -> _FakeSSLContext:
-    """Legacy API for creating a fake SSL context"""
+    """Method to return a fake SSL context for when ssl isn't available to import"""
     if not iface:
         # pylint: disable=protected-access
         iface = socket_pool._the_interface
@@ -188,31 +217,44 @@ class ConnectionManager:
         self._socket_free = {}
 
     def _free_sockets(self) -> None:
+        logger.debug("ConnectionManager.free_sockets()")
         free_sockets = []
-        for socket, val in self._socket_free.items():
-            if val:
+        for socket, free in self._socket_free.items():
+            if free:
+                key = self._get_key_for_socket(socket)
+                logger.debug(f"  found {key}")
                 free_sockets.append(socket)
 
         for socket in free_sockets:
             self.close_socket(socket)
 
-    def free_socket(self, socket: SocketType) -> None:
-        """Mark a socket as free so it can be reused if needed"""
-        if socket not in self._open_sockets.values():
-            raise RuntimeError("Socket not from session")
-        self._socket_free[socket] = True
+    def _get_key_for_socket(self, socket):
+        try:
+            return next(
+                key for key, value in self._open_sockets.items() if value == socket
+            )
+        except StopIteration:
+            return None
 
     def close_socket(self, socket: SocketType) -> None:
-        """Close a socket"""
+        """Close a previously opened socket."""
+        logger.debug("ConnectionManager.close_socket()")
+        if socket not in self._open_sockets.values():
+            raise RuntimeError("Socket not managed")
+        key = self._get_key_for_socket(socket)
+        logger.debug(f"  closing {key}")
         socket.close()
         del self._socket_free[socket]
-        key = None
-        for k, value in self._open_sockets.items():
-            if value == socket:
-                key = k
-                break
-        if key:
-            del self._open_sockets[key]
+        del self._open_sockets[key]
+
+    def free_socket(self, socket: SocketType) -> None:
+        """Mark a previously opened socket as free so it can be reused if needed."""
+        logger.debug("ConnectionManager.free_socket()")
+        if socket not in self._open_sockets.values():
+            raise RuntimeError("Socket not managed")
+        key = self._get_key_for_socket(socket)
+        logger.debug(f"  flagging {key} as free")
+        self._socket_free[socket] = True
 
     # pylint: disable=too-many-locals,too-many-statements
     def get_socket(
@@ -227,12 +269,16 @@ class ConnectionManager:
         max_retries: int = 5,
         exception_passthrough: bool = False,
     ) -> CircuitPythonSocketType:
-        """Get socket and connect"""
+        """Get a new socket and connect"""
         # pylint: disable=too-many-branches
+        logger.debug("ConnectionManager.get_socket()")
+        logger.debug(f"  tracking {len(self._open_sockets)} sockets")
         key = (host, port, proto)
+        logger.debug(f"  getting socket for {key}")
         if key in self._open_sockets:
             socket = self._open_sockets[key]
             if self._socket_free[socket]:
+                logger.debug(f"  found existing {key}")
                 self._socket_free[socket] = False
                 return socket
 
@@ -253,6 +299,7 @@ class ConnectionManager:
         last_exc_new_type = None
         while retry_count < max_retries and socket is None:
             if retry_count > 0:
+                logger.debug(f"  retry #{retry_count}")
                 if any(self._socket_free.items()):
                     self._free_sockets()
                 else:
@@ -262,10 +309,12 @@ class ConnectionManager:
             try:
                 socket = self._socket_pool.socket(addr_info[0], addr_info[1])
             except OSError as exc:
+                logger.debug(f"  OSError getting socket: {exc}")
                 last_exc_new_type = SocketGetOSError
                 last_exc = exc
                 continue
             except RuntimeError as exc:
+                logger.debug(f"  RuntimeError getting socket: {exc}")
                 last_exc_new_type = SocketGetRuntimeError
                 last_exc = exc
                 continue
@@ -279,17 +328,20 @@ class ConnectionManager:
             try:
                 socket.connect((connect_host, port))
             except MemoryError as exc:
+                logger.debug(f"  MemoryError connecting socket: {exc}")
                 last_exc_new_type = SocketConnectMemoryError
                 last_exc = exc
                 socket.close()
                 socket = None
             except OSError as exc:
+                logger.debug(f"  OSError connecting socket: {exc}")
                 last_exc_new_type = SocketConnectOSError
                 last_exc = exc
                 socket.close()
                 socket = None
 
         if socket is None:
+            logger.debug("  Repeated socket failures")
             if exception_passthrough:
                 raise last_exc_new_type("Repeated socket failures") from last_exc
             raise RuntimeError("Repeated socket failures") from last_exc
