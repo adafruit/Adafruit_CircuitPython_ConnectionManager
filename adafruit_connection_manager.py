@@ -262,6 +262,7 @@ class ConnectionManager:
         host: str,
         port: int,
         proto: str,
+        session_id: Optional[str] = None,
         *,
         timeout: float = 1,
         is_ssl: bool = False,
@@ -273,7 +274,7 @@ class ConnectionManager:
         # pylint: disable=too-many-branches
         logger.debug("ConnectionManager.get_socket()")
         logger.debug(f"  tracking {len(self._open_sockets)} sockets")
-        key = (host, port, proto)
+        key = (host, port, proto, session_id)
         logger.debug(f"  getting socket for {key}")
         if key in self._open_sockets:
             socket = self._open_sockets[key]
@@ -351,6 +352,9 @@ class ConnectionManager:
         return socket
 
 
+# connection helpers
+
+
 _global_connection_manager = None  # pylint: disable=invalid-name
 
 
@@ -360,3 +364,39 @@ def get_connection_manager(socket_pool: SocketpoolModuleType) -> None:
     if _global_connection_manager is None:
         _global_connection_manager = ConnectionManager(socket_pool)
     return _global_connection_manager
+
+
+def get_connection_members(radio):
+    """Helper to get needed connection mamers for common boards"""
+    logger.debug("Detecting radio...")
+
+    if hasattr(radio, "__class__") and radio.__class__.__name__:
+        class_name = radio.__class__.__name__
+    else:
+        raise AttributeError("Can not determine class of radio")
+
+    if class_name == "Radio":
+        logger.debug(" - Found WiFi")
+        import ssl  # pylint: disable=import-outside-toplevel
+        import socketpool  # pylint: disable=import-outside-toplevel
+
+        pool = socketpool.SocketPool(radio)
+        ssl_context = ssl.create_default_context()
+        return pool, ssl_context
+
+    if class_name == "ESP_SPIcontrol":
+        logger.debug(" - Found ESP32SPI")
+        import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
+
+        ssl_context = create_fake_ssl_context(pool, radio)
+        return pool, ssl_context
+
+    if class_name == "WIZNET5K":
+        logger.debug(" - Found WIZNET5K")
+        import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
+
+        # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
+        ssl_context = create_fake_ssl_context(pool, radio)
+        return pool, ssl_context
+
+    raise AttributeError(f"Unsupported radio class: {class_name}")
