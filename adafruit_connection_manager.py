@@ -274,7 +274,7 @@ class ConnectionManager:
         # pylint: disable=too-many-branches
         logger.debug("ConnectionManager.get_socket()")
         logger.debug(f"  tracking {len(self._open_sockets)} sockets")
-        key = (host, port, proto, session_id)
+        key = (host, port, proto, str(session_id))
         logger.debug(f"  getting socket for {key}")
         if key in self._open_sockets:
             socket = self._open_sockets[key]
