@@ -205,7 +205,7 @@ def create_fake_ssl_context(
 
 
 class ConnectionManager:
-    """Connection manager for sharing sockets."""
+    """Connection manager for sharing open sockets (aka connections)."""
 
     def __init__(
         self,
