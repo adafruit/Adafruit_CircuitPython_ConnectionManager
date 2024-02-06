@@ -367,7 +367,7 @@ def get_connection_manager(socket_pool: SocketpoolModuleType) -> None:
 
 
 def get_connection_members(radio):
-    """Helper to get needed connection mamers for common boards"""
+    """Helper to get needed connection members for common boards"""
     logger.debug("Detecting radio...")
 
     if hasattr(radio, "__class__") and radio.__class__.__name__:
