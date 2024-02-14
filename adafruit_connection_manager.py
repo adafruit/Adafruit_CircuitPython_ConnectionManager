@@ -30,6 +30,20 @@ import errno
 import sys
 
 
+# typing
+
+
+if not sys.implementation.name == "circuitpython":
+    from typing import Optional, Tuple
+    from circuitpython_typing.socket import (
+        CircuitPythonSocketType,
+        SocketType,
+        SocketpoolModuleType,
+        InterfaceType,
+        SSLContextType,
+    )
+
+
 # common helpers
 
 
@@ -49,40 +63,7 @@ except ImportError:
     logger = NullLogger()
 
 
-# typing
-
-
-if not sys.implementation.name == "circuitpython":
-    from typing import Optional, Tuple
-    from circuitpython_typing.socket import (
-        CircuitPythonSocketType,
-        SocketType,
-        SocketpoolModuleType,
-        InterfaceType,
-        SSLContextType,
-    )
-
-
-# custon exceptions
-
-
-class SocketConnectMemoryError(OSError):
-    """ConnectionManager Exception class for an MemoryError when connecting a socket."""
-
-
-class SocketConnectOSError(OSError):
-    """ConnectionManager Exception class for an OSError when connecting a socket."""
-
-
-class SocketGetOSError(OSError):
-    """ConnectionManager Exception class for an OSError when getting a socket."""
-
-
-class SocketGetRuntimeError(RuntimeError):
-    """ConnectionManager Exception class for an RuntimeError when getting a socket."""
-
-
-# classes
+# ssl and pool helpers
 
 
 class _FakeSSLSocket:
@@ -126,6 +107,82 @@ def create_fake_ssl_context(
     return _FakeSSLContext(iface)
 
 
+_global_socketpool = {}
+_global_ssl_contexts = {}
+
+
+def get_radio_socketpool(radio):
+    """Helper to get SocketPool for common boards"""
+    if hasattr(radio, "__class__") and radio.__class__.__name__:
+        class_name = radio.__class__.__name__
+    else:
+        raise AttributeError("Can not determine class of radio")
+
+    if class_name not in _global_socketpool:
+        logger.debug("Detecting radio...")
+
+        if class_name == "Radio":
+            logger.debug(" - Found onboard WiFi")
+            import socketpool  # pylint: disable=import-outside-toplevel
+
+            pool = socketpool.SocketPool(radio)
+
+        elif class_name == "ESP_SPIcontrol":
+            logger.debug(" - Found ESP32SPI")
+            import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
+
+        elif class_name == "WIZNET5K":
+            logger.debug(" - Found WIZNET5K")
+            import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
+
+        else:
+            raise AttributeError(f"Unsupported radio class: {class_name}")
+
+        _global_socketpool[class_name] = pool
+
+    return _global_socketpool[class_name]
+
+
+def get_radio_ssl_contexts(radio):
+    """Helper to get ssl_contexts for common boards"""
+    if hasattr(radio, "__class__") and radio.__class__.__name__:
+        class_name = radio.__class__.__name__
+    else:
+        raise AttributeError("Can not determine class of radio")
+
+    if class_name not in _global_ssl_contexts:
+        logger.debug("Detecting radio...")
+
+        if class_name == "Radio":
+            logger.debug(" - Found onboard WiFi")
+            import ssl  # pylint: disable=import-outside-toplevel
+
+            ssl_context = ssl.create_default_context()
+
+        elif class_name == "ESP_SPIcontrol":
+            logger.debug(" - Found ESP32SPI")
+            import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
+
+            ssl_context = create_fake_ssl_context(pool, radio)
+
+        elif class_name == "WIZNET5K":
+            logger.debug(" - Found WIZNET5K")
+            import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
+
+            # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
+            ssl_context = create_fake_ssl_context(pool, radio)
+
+        else:
+            raise AttributeError(f"Unsupported radio class: {class_name}")
+
+        _global_ssl_contexts[class_name] = ssl_context
+
+    return _global_ssl_contexts[class_name]
+
+
+# main class
+
+
 class ConnectionManager:
     """Connection manager for sharing open sockets (aka connections)."""
 
@@ -135,19 +192,19 @@ class ConnectionManager:
     ) -> None:
         self._socket_pool = socket_pool
         # Hang onto open sockets so that we can reuse them.
+        self._available_socket = {}
         self._open_sockets = {}
-        self._socket_free = {}
 
     def _free_sockets(self) -> None:
         logger.debug("ConnectionManager.free_sockets()")
-        free_sockets = []
-        for socket, free in self._socket_free.items():
+        available_sockets = []
+        for socket, free in self._available_socket.items():
             if free:
                 key = self._get_key_for_socket(socket)
                 logger.debug(f"  found {key}")
-                free_sockets.append(socket)
+                available_sockets.append(socket)
 
-        for socket in free_sockets:
+        for socket in available_sockets:
             self.close_socket(socket)
 
     def _get_key_for_socket(self, socket):
@@ -166,19 +223,19 @@ class ConnectionManager:
         key = self._get_key_for_socket(socket)
         logger.debug(f"  closing {key}")
         socket.close()
-        del self._socket_free[socket]
+        del self._available_socket[socket]
         del self._open_sockets[key]
 
     def free_socket(self, socket: SocketType) -> None:
-        """Mark a previously opened socket as free so it can be reused if needed."""
+        """Mark a previously opened socket as available so it can be reused if needed."""
         logger.debug("ConnectionManager.free_socket()")
         if socket not in self._open_sockets.values():
             raise RuntimeError("Socket not managed")
         key = self._get_key_for_socket(socket)
         logger.debug(f"  flagging {key} as free")
-        self._socket_free[socket] = True
+        self._available_socket[socket] = True
 
-    # pylint: disable=too-many-locals,too-many-statements
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     def get_socket(
         self,
         host: str,
@@ -189,26 +246,25 @@ class ConnectionManager:
         timeout: float = 1,
         is_ssl: bool = False,
         ssl_context: Optional[SSLContextType] = None,
-        max_retries: int = 5,
-        exception_passthrough: bool = False,
     ) -> CircuitPythonSocketType:
         """Get a new socket and connect"""
-        # pylint: disable=too-many-branches
         logger.debug("ConnectionManager.get_socket()")
         logger.debug(f"  tracking {len(self._open_sockets)} sockets")
         key = (host, port, proto, str(session_id))
         logger.debug(f"  getting socket for {key}")
         if key in self._open_sockets:
             socket = self._open_sockets[key]
-            if self._socket_free[socket]:
+            if self._available_socket[socket]:
                 logger.debug(f"  found existing {key}")
-                self._socket_free[socket] = False
+                self._available_socket[socket] = False
                 return socket
+
+            raise RuntimeError(f"Socket already connected to {proto}//{host}:{port}")
 
         if proto == "https:":
             is_ssl = True
         if is_ssl and not ssl_context:
-            raise RuntimeError(
+            raise AttributeError(
                 "ssl_context must be set before using adafruit_requests for https"
             )
 
@@ -216,65 +272,63 @@ class ConnectionManager:
             host, port, 0, self._socket_pool.SOCK_STREAM
         )[0]
 
-        retry_count = 0
+        try_count = 0
         socket = None
         last_exc = None
-        last_exc_new_type = None
-        while retry_count < max_retries and socket is None:
-            if retry_count > 0:
-                logger.debug(f"  retry #{retry_count}")
-                if any(self._socket_free.items()):
+        while try_count < 2 and socket is None:
+            try_count += 1
+            if try_count > 1:
+                logger.debug(f"  try #{try_count}")
+                if any(
+                    socket
+                    for socket, free in self._available_socket.items()
+                    if free is True
+                ):
                     self._free_sockets()
                 else:
-                    raise RuntimeError("Sending request failed") from last_exc
-            retry_count += 1
+                    break
 
             try:
                 socket = self._socket_pool.socket(addr_info[0], addr_info[1])
             except OSError as exc:
                 logger.debug(f"  OSError getting socket: {exc}")
-                last_exc_new_type = SocketGetOSError
                 last_exc = exc
                 continue
             except RuntimeError as exc:
                 logger.debug(f"  RuntimeError getting socket: {exc}")
-                last_exc_new_type = SocketGetRuntimeError
                 last_exc = exc
                 continue
 
-            connect_host = addr_info[-1][0]
             if is_ssl:
                 socket = ssl_context.wrap_socket(socket, server_hostname=host)
                 connect_host = host
+            else:
+                connect_host = addr_info[-1][0]
             socket.settimeout(timeout)  # socket read timeout
 
             try:
                 socket.connect((connect_host, port))
             except MemoryError as exc:
                 logger.debug(f"  MemoryError connecting socket: {exc}")
-                last_exc_new_type = SocketConnectMemoryError
                 last_exc = exc
                 socket.close()
                 socket = None
             except OSError as exc:
                 logger.debug(f"  OSError connecting socket: {exc}")
-                last_exc_new_type = SocketConnectOSError
                 last_exc = exc
                 socket.close()
                 socket = None
 
         if socket is None:
-            logger.debug("  Repeated socket failures")
-            if exception_passthrough:
-                raise last_exc_new_type("Repeated socket failures") from last_exc
-            raise RuntimeError("Repeated socket failures") from last_exc
+            logger.debug("  Error connecting socket")
+            raise RuntimeError("Error connecting socket") from last_exc
 
+        self._available_socket[socket] = False
         self._open_sockets[key] = socket
-        self._socket_free[socket] = False
         return socket
 
 
-# connection helpers
+# global helpers
 
 
 _global_connection_manager = None  # pylint: disable=invalid-name
@@ -286,39 +340,3 @@ def get_connection_manager(socket_pool: SocketpoolModuleType) -> None:
     if _global_connection_manager is None:
         _global_connection_manager = ConnectionManager(socket_pool)
     return _global_connection_manager
-
-
-def get_connection_members(radio):
-    """Helper to get needed connection members for common boards"""
-    logger.debug("Detecting radio...")
-
-    if hasattr(radio, "__class__") and radio.__class__.__name__:
-        class_name = radio.__class__.__name__
-    else:
-        raise AttributeError("Can not determine class of radio")
-
-    if class_name == "Radio":
-        logger.debug(" - Found WiFi")
-        import ssl  # pylint: disable=import-outside-toplevel
-        import socketpool  # pylint: disable=import-outside-toplevel
-
-        pool = socketpool.SocketPool(radio)
-        ssl_context = ssl.create_default_context()
-        return pool, ssl_context
-
-    if class_name == "ESP_SPIcontrol":
-        logger.debug(" - Found ESP32SPI")
-        import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
-
-        ssl_context = create_fake_ssl_context(pool, radio)
-        return pool, ssl_context
-
-    if class_name == "WIZNET5K":
-        logger.debug(" - Found WIZNET5K")
-        import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
-
-        # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
-        ssl_context = create_fake_ssl_context(pool, radio)
-        return pool, ssl_context
-
-    raise AttributeError(f"Unsupported radio class: {class_name}")

@@ -22,7 +22,7 @@ def test_get_https_no_ssl():
     pool.socket.return_value = sock
 
     connection_manager = adafruit_connection_manager.ConnectionManager(pool)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(AttributeError):
         connection_manager.get_socket(HOST, 443, "https:")
 
 
