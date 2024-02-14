@@ -50,7 +50,7 @@ if not sys.implementation.name == "circuitpython":
 try:
     import adafruit_logging as logging
 
-    logger = logging.getLogger("__name__")
+    logger = logging.getLogger(__name__)
 except ImportError:
     # pylint: disable=too-few-public-methods
     class NullLogger:
@@ -112,7 +112,7 @@ _global_ssl_contexts = {}
 
 
 def get_radio_socketpool(radio):
-    """Helper to get SocketPool for common boards"""
+    """Helper to get a socket pool for common boards"""
     if hasattr(radio, "__class__") and radio.__class__.__name__:
         class_name = radio.__class__.__name__
     else:
@@ -250,7 +250,9 @@ class ConnectionManager:
         """Get a new socket and connect"""
         logger.debug("ConnectionManager.get_socket()")
         logger.debug(f"  tracking {len(self._open_sockets)} sockets")
-        key = (host, port, proto, str(session_id))
+        if session_id:
+            session_id = str(session_id)
+        key = (host, port, proto, session_id)
         logger.debug(f"  getting socket for {key}")
         if key in self._open_sockets:
             socket = self._open_sockets[key]
@@ -321,7 +323,7 @@ class ConnectionManager:
 
         if socket is None:
             logger.debug("  Error connecting socket")
-            raise RuntimeError("Error connecting socket") from last_exc
+            raise RuntimeError(f"Error connecting socket: {last_exc}") from last_exc
 
         self._available_socket[socket] = False
         self._open_sockets[key] = socket
