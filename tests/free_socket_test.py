@@ -6,6 +6,7 @@
 
 import mocket
 import pytest
+
 import adafruit_connection_manager
 
 IP = "1.2.3.4"

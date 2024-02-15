@@ -29,17 +29,17 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_ConnectionManager
 import errno
 import sys
 
-
 # typing
 
 
 if not sys.implementation.name == "circuitpython":
     from typing import Optional, Tuple
+
     from circuitpython_typing.socket import (
         CircuitPythonSocketType,
-        SocketType,
-        SocketpoolModuleType,
         InterfaceType,
+        SocketpoolModuleType,
+        SocketType,
         SSLContextType,
     )
 
