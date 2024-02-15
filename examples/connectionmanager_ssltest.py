@@ -11,7 +11,7 @@ import adafruit_connection_manager
 
 # built from:
 #  https://github.com/adafruit/Adafruit_Learning_System_Guides
-adafruit_groups = [
+ADAFRUIT_GROUPS = [
     {
         "heading": "API hosts",
         "description": "These are common API hosts users hit.",
@@ -92,7 +92,7 @@ adafruit_groups = [
 
 # pulled from:
 #  https://github.com/chromium/badssl.com/blob/master/domains/misc/badssl.com/dashboard/sets.js
-badssl_groups = [
+BADSSL_GROUPS = [
     {
         "heading": "Certificate Validation (High Risk)",
         "description": (
@@ -216,6 +216,15 @@ badssl_groups = [
     },
 ]
 
+COMMON_FAILURE_CODES = [
+    "Failed SSL handshake",
+    "MBEDTLS_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANG",
+    "MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE",
+    "MBEDTLS_ERR_X509_CERT_VERIFY_FAILED",
+    "MBEDTLS_ERR_X509_FATAL_ERROR",
+]
+
+
 pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
 ssl_context = adafruit_connection_manager.get_radio_ssl_contexts(wifi.radio)
 connection_manager = adafruit_connection_manager.get_connection_manager(pool)
@@ -225,6 +234,14 @@ wifi_password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
 while not wifi.radio.connected:
     wifi.radio.connect(wifi_ssid, wifi_password)
+
+
+def common_failuer(exc):
+    text_value = str(exc)
+    for common_failures_code in COMMON_FAILURE_CODES:
+        if common_failures_code in text_value:
+            return True
+    return False
 
 
 def check_group(groups, group_name):
@@ -243,14 +260,19 @@ def check_group(groups, group_name):
             start_time = time.monotonic()
             try:
                 socket = connection_manager.get_socket(
-                    host, port, "https:", is_ssl=True, ssl_context=ssl_context
+                    host,
+                    port,
+                    "https:",
+                    is_ssl=True,
+                    ssl_context=ssl_context,
+                    timeout=10,
                 )
                 connection_manager.close_socket(socket)
             except RuntimeError as e:
                 exc = e
             duration = time.monotonic() - start_time
 
-            if fail == "yes" and exc and "Failed SSL handshake" in str(exc):
+            if fail == "yes" and exc and common_failuer(exc):
                 result = "passed"
             elif success == "yes" and exc is None:
                 result = "passed"
@@ -260,5 +282,5 @@ def check_group(groups, group_name):
             print(f"   - {host}:{port} took {duration:.2f} seconds | {result}")
 
 
-check_group(adafruit_groups, "Adafruit")
-check_group(badssl_groups, "BadSSL")
+check_group(ADAFRUIT_GROUPS, "Adafruit")
+check_group(BADSSL_GROUPS, "BadSSL")
