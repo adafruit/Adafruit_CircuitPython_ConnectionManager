@@ -2,29 +2,77 @@
 #
 # SPDX-License-Identifier: Unlicense
 
+import os
 import time
+
 import wifi
 
 import adafruit_connection_manager
 
-
 adafruit_groups = [
     {
-        "heading": "Common hosts",
-        "description": "These are common hosts users hit.",
+        "heading": "API hosts",
+        "description": "These are common API hosts users hit.",
         "success": "yes",
         "fail": "no",
         "subdomains": [
+            {"host": "api.coindesk.com"},
+            {"host": "api.covidtracking.com"},
+            {"host": "api.developer.lifx.com"},
             {"host": "api.fitbit.com"},
             {"host": "api.github.com"},
+            {"host": "api.hackaday.io"},
+            {"host": "api.hackster.io"},
+            {"host": "api.met.no"},
+            {"host": "api.nasa.gov"},
+            {"host": "api.nytimes.com"},
+            {"host": "api.open-meteo.com"},
+            {"host": "api.openai.com"},
+            {"host": "api.openweathermap.org"},
+            {"host": "api.purpleair.com"},
+            {"host": "api.spacexdata.com"},
+            {"host": "api.thecatapi.com"},
+            {"host": "api.thingiverse.com"},
             {"host": "api.thingspeak.com"},
+            {"host": "api.tidesandcurrents.noaa.gov"},
             {"host": "api.twitter.com"},
+            {"host": "api.wordnik.com"},
+        ],
+    },
+    {
+        "heading": "Common hosts",
+        "description": "These are other common hosts users hit.",
+        "success": "yes",
+        "fail": "no",
+        "subdomains": [
+            {"host": "admiraltyapi.azure-api.net"},
+            {"host": "aeroapi.flightaware.com"},
+            {"host": "airnowapi.org"},
+            {"host": "certification.oshwa.org"},
+            {"host": "certificationapi.oshwa.org"},
+            {"host": "chat.openai.com"},
+            {"host": "covidtracking.com"},
             {"host": "discord.com"},
+            {"host": "enviro.epa.gov"},
+            {"host": "flightaware.com"},
+            {"host": "hosted.weblate.org"},
             {"host": "id.twitch.tv"},
+            {"host": "io.adafruit.com"},
+            {"host": "jwst.nasa.gov"},
+            {"host": "management.azure.com"},
+            {"host": "na1.api.riotgames.com"},
             {"host": "oauth2.googleapis.com"},
             {"host": "opensky-network.org"},
+            {"host": "opentdb.com"},
+            {"host": "raw.githubusercontent.com"},
+            {"host": "site.api.espn.com"},
+            {"host": "spreadsheets.google.com"},
+            {"host": "twitrss.me"},
             {"host": "www.adafruit.com"},
+            {"host": "www.alphavantage.co"},
             {"host": "www.googleapis.com"},
+            {"host": "www.nhc.noaa.gov"},
+            {"host": "www.reddit.com"},
             {"host": "youtube.googleapis.com"},
         ],
     },
@@ -35,6 +83,7 @@ adafruit_groups = [
         "fail": "no",
         "subdomains": [
             {"host": "valid-isrgrootx2.letsencrypt.org"},
+            {"host": "openaccess-api.clevelandart.org"},
         ],
     },
 ]
@@ -166,6 +215,12 @@ badssl_groups = [
 pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
 ssl_context = adafruit_connection_manager.get_radio_ssl_contexts(wifi.radio)
 connection_manager = adafruit_connection_manager.get_connection_manager(pool)
+
+wifi_ssid = os.getenv("CIRCUITPY_WIFI_SSID")
+wifi_password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+
+while not wifi.radio.connected:
+    wifi.radio.connect(wifi_ssid, wifi_password)
 
 
 def check_group(groups, group_name):
