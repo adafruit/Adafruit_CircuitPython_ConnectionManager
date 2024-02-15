@@ -9,6 +9,8 @@ import wifi
 
 import adafruit_connection_manager
 
+# built from:
+#  https://github.com/adafruit/Adafruit_Learning_System_Guides
 adafruit_groups = [
     {
         "heading": "API hosts",
@@ -88,6 +90,8 @@ adafruit_groups = [
     },
 ]
 
+# pulled from:
+#  https://github.com/chromium/badssl.com/blob/master/domains/misc/badssl.com/dashboard/sets.js
 badssl_groups = [
     {
         "heading": "Certificate Validation (High Risk)",
