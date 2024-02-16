@@ -44,25 +44,6 @@ if not sys.implementation.name == "circuitpython":
     )
 
 
-# common helpers
-
-
-try:
-    import adafruit_logging as logging
-
-    logger = logging.getLogger(__name__)
-except ImportError:
-    # pylint: disable=too-few-public-methods
-    class NullLogger:
-        """Simple class to throw away log messages."""
-
-        def __init__(self) -> None:
-            for log_level in ["debug", "info", "warning", "error", "critical"]:
-                setattr(NullLogger, log_level, lambda *args, **kwargs: None)
-
-    logger = NullLogger()
-
-
 # ssl and pool helpers
 
 
@@ -119,20 +100,15 @@ def get_radio_socketpool(radio):
         raise AttributeError("Can not determine class of radio")
 
     if class_name not in _global_socketpool:
-        logger.debug("Detecting radio...")
-
         if class_name == "Radio":
-            logger.debug(" - Found onboard WiFi")
             import socketpool  # pylint: disable=import-outside-toplevel
 
             pool = socketpool.SocketPool(radio)
 
         elif class_name == "ESP_SPIcontrol":
-            logger.debug(" - Found ESP32SPI")
             import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
 
         elif class_name == "WIZNET5K":
-            logger.debug(" - Found WIZNET5K")
             import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
 
         else:
@@ -151,22 +127,17 @@ def get_radio_ssl_contexts(radio):
         raise AttributeError("Can not determine class of radio")
 
     if class_name not in _global_ssl_contexts:
-        logger.debug("Detecting radio...")
-
         if class_name == "Radio":
-            logger.debug(" - Found onboard WiFi")
             import ssl  # pylint: disable=import-outside-toplevel
 
             ssl_context = ssl.create_default_context()
 
         elif class_name == "ESP_SPIcontrol":
-            logger.debug(" - Found ESP32SPI")
             import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
 
             ssl_context = create_fake_ssl_context(pool, radio)
 
         elif class_name == "WIZNET5K":
-            logger.debug(" - Found WIZNET5K")
             import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
 
             # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
@@ -196,12 +167,9 @@ class ConnectionManager:
         self._open_sockets = {}
 
     def _free_sockets(self) -> None:
-        logger.debug("ConnectionManager.free_sockets()")
         available_sockets = []
         for socket, free in self._available_socket.items():
             if free:
-                key = self._get_key_for_socket(socket)
-                logger.debug(f"  found {key}")
                 available_sockets.append(socket)
 
         for socket in available_sockets:
@@ -217,22 +185,17 @@ class ConnectionManager:
 
     def close_socket(self, socket: SocketType) -> None:
         """Close a previously opened socket."""
-        logger.debug("ConnectionManager.close_socket()")
         if socket not in self._open_sockets.values():
             raise RuntimeError("Socket not managed")
         key = self._get_key_for_socket(socket)
-        logger.debug(f"  closing {key}")
         socket.close()
         del self._available_socket[socket]
         del self._open_sockets[key]
 
     def free_socket(self, socket: SocketType) -> None:
         """Mark a previously opened socket as available so it can be reused if needed."""
-        logger.debug("ConnectionManager.free_socket()")
         if socket not in self._open_sockets.values():
             raise RuntimeError("Socket not managed")
-        key = self._get_key_for_socket(socket)
-        logger.debug(f"  flagging {key} as free")
         self._available_socket[socket] = True
 
     # pylint: disable=too-many-branches,too-many-locals,too-many-statements
@@ -248,16 +211,12 @@ class ConnectionManager:
         ssl_context: Optional[SSLContextType] = None,
     ) -> CircuitPythonSocketType:
         """Get a new socket and connect"""
-        logger.debug("ConnectionManager.get_socket()")
-        logger.debug(f"  tracking {len(self._open_sockets)} sockets")
         if session_id:
             session_id = str(session_id)
         key = (host, port, proto, session_id)
-        logger.debug(f"  getting socket for {key}")
         if key in self._open_sockets:
             socket = self._open_sockets[key]
             if self._available_socket[socket]:
-                logger.debug(f"  found existing {key}")
                 self._available_socket[socket] = False
                 return socket
 
@@ -280,7 +239,6 @@ class ConnectionManager:
         while try_count < 2 and socket is None:
             try_count += 1
             if try_count > 1:
-                logger.debug(f"  try #{try_count}")
                 if any(
                     socket
                     for socket, free in self._available_socket.items()
@@ -293,11 +251,9 @@ class ConnectionManager:
             try:
                 socket = self._socket_pool.socket(addr_info[0], addr_info[1])
             except OSError as exc:
-                logger.debug(f"  OSError getting socket: {exc}")
                 last_exc = exc
                 continue
             except RuntimeError as exc:
-                logger.debug(f"  RuntimeError getting socket: {exc}")
                 last_exc = exc
                 continue
 
@@ -311,18 +267,15 @@ class ConnectionManager:
             try:
                 socket.connect((connect_host, port))
             except MemoryError as exc:
-                logger.debug(f"  MemoryError connecting socket: {exc}")
                 last_exc = exc
                 socket.close()
                 socket = None
             except OSError as exc:
-                logger.debug(f"  OSError connecting socket: {exc}")
                 last_exc = exc
                 socket.close()
                 socket = None
 
         if socket is None:
-            logger.debug("  Error connecting socket")
             raise RuntimeError(f"Error connecting socket: {last_exc}") from last_exc
 
         self._available_socket[socket] = False
