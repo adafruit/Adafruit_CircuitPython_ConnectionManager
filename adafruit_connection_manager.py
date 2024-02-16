@@ -74,7 +74,10 @@ class _FakeSSLContext:
         self, socket: CircuitPythonSocketType, server_hostname: Optional[str] = None
     ) -> _FakeSSLSocket:
         """Return the same socket"""
-        return _FakeSSLSocket(socket, self._iface.TLS_MODE)
+        if hasattr(self._iface, "TLS_MODE"):
+            return _FakeSSLSocket(socket, self._iface.TLS_MODE)
+
+        raise AttributeError("This radio does not support TLS/HTTPS")
 
 
 def create_fake_ssl_context(
