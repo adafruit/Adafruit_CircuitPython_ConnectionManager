@@ -5,9 +5,28 @@
 import os
 import time
 
-import wifi
-
 import adafruit_connection_manager
+
+try:
+    import wifi
+
+    radio = wifi.radio
+    onboard_wifi = True
+except ImportError:
+    import board
+    import busio
+    from adafruit_esp32spi import adafruit_esp32spi
+    from digitalio import DigitalInOut
+
+    # esp32spi pins set based on Adafruit AirLift FeatherWing
+    # if using a different setup, please change appropriately
+    spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+    esp32_cs = DigitalInOut(board.D13)
+    esp32_ready = DigitalInOut(board.D11)
+    esp32_reset = DigitalInOut(board.D12)
+    radio = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
+    onboard_wifi = False
+
 
 # built from:
 #  https://github.com/adafruit/Adafruit_Learning_System_Guides
@@ -217,26 +236,35 @@ BADSSL_GROUPS = [
 ]
 
 COMMON_FAILURE_CODES = [
-    "Failed SSL handshake",
-    "MBEDTLS_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANG",
-    "MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE",
-    "MBEDTLS_ERR_X509_CERT_VERIFY_FAILED",
-    "MBEDTLS_ERR_X509_FATAL_ERROR",
+    "Expected 01 but got 00",  # AirLift
+    "Failed SSL handshake",  # Espressif
+    "MBEDTLS_ERR_SSL_BAD_HS_SERVER_KEY_EXCHANG",  # mbedtls
+    "MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE",  # mbedtls
+    "MBEDTLS_ERR_X509_CERT_VERIFY_FAILED",  # mbedtls
+    "MBEDTLS_ERR_X509_FATAL_ERROR",  # mbedtls
 ]
 
 
-pool = adafruit_connection_manager.get_radio_socketpool(wifi.radio)
-ssl_context = adafruit_connection_manager.get_radio_ssl_contexts(wifi.radio)
+pool = adafruit_connection_manager.get_radio_socketpool(radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_contexts(radio)
 connection_manager = adafruit_connection_manager.get_connection_manager(pool)
 
 wifi_ssid = os.getenv("CIRCUITPY_WIFI_SSID")
 wifi_password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
 
-while not wifi.radio.connected:
-    wifi.radio.connect(wifi_ssid, wifi_password)
+if onboard_wifi:
+    while not radio.connected:
+        radio.connect(wifi_ssid, wifi_password)
+else:
+    while not radio.is_connected:
+        try:
+            radio.connect_AP(wifi_ssid, wifi_password)
+        except OSError as os_exc:
+            print(f"could not connect to AP, retrying: {os_exc}")
+            continue
 
 
-def common_failuer(exc):
+def common_failure(exc):
     text_value = str(exc)
     for common_failures_code in COMMON_FAILURE_CODES:
         if common_failures_code in text_value:
@@ -272,7 +300,7 @@ def check_group(groups, group_name):
                 exc = e
             duration = time.monotonic() - start_time
 
-            if fail == "yes" and exc and common_failuer(exc):
+            if fail == "yes" and exc and common_failure(exc):
                 result = "passed"
             elif success == "yes" and exc is None:
                 result = "passed"
