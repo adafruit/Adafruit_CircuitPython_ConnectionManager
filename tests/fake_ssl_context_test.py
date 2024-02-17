@@ -19,7 +19,7 @@ def test_connect_https():
     ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
-    # verify a HTTPS call gets a _FakeSSLSocket
+    # verify a HTTPS call for a board without built in WiFi gets a _FakeSSLSocket
     socket = connection_manager.get_socket(
         mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
     )
@@ -37,7 +37,7 @@ def test_connect_https_not_supported():
     ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
-    # verify a HTTPS call gets a _FakeSSLSocket
+    # verify a HTTPS call for a board without built in WiFi and SSL support errors
     with pytest.raises(AttributeError) as context:
         connection_manager.get_socket(
             mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
