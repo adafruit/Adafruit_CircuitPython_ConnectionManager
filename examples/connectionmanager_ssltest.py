@@ -246,7 +246,7 @@ COMMON_FAILURE_CODES = [
 
 
 pool = adafruit_connection_manager.get_radio_socketpool(radio)
-ssl_context = adafruit_connection_manager.get_radio_ssl_contexts(radio)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
 connection_manager = adafruit_connection_manager.get_connection_manager(pool)
 
 wifi_ssid = os.getenv("CIRCUITPY_WIFI_SSID")

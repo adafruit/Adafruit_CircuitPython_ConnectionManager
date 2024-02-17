@@ -81,12 +81,9 @@ class _FakeSSLContext:
 
 
 def create_fake_ssl_context(
-    socket_pool: SocketpoolModuleType, iface: Optional[InterfaceType] = None
+    socket_pool: SocketpoolModuleType, iface: InterfaceType
 ) -> _FakeSSLContext:
     """Method to return a fake SSL context for when ssl isn't available to import"""
-    if not iface:
-        # pylint: disable=protected-access
-        iface = socket_pool._the_interface
     socket_pool.set_interface(iface)
     return _FakeSSLContext(iface)
 
@@ -97,11 +94,7 @@ _global_ssl_contexts = {}
 
 def get_radio_socketpool(radio):
     """Helper to get a socket pool for common boards"""
-    if hasattr(radio, "__class__") and radio.__class__.__name__:
-        class_name = radio.__class__.__name__
-    else:
-        raise AttributeError("Can not determine class of radio")
-
+    class_name = radio.__class__.__name__
     if class_name not in _global_socketpool:
         if class_name == "Radio":
             import socketpool  # pylint: disable=import-outside-toplevel
@@ -122,12 +115,9 @@ def get_radio_socketpool(radio):
     return _global_socketpool[class_name]
 
 
-def get_radio_ssl_contexts(radio):
+def get_radio_ssl_context(radio):
     """Helper to get ssl_contexts for common boards"""
-    if hasattr(radio, "__class__") and radio.__class__.__name__:
-        class_name = radio.__class__.__name__
-    else:
-        raise AttributeError("Can not determine class of radio")
+    class_name = radio.__class__.__name__
 
     if class_name not in _global_ssl_contexts:
         if class_name == "Radio":

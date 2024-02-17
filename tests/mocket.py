@@ -6,21 +6,27 @@
 
 from unittest import mock
 
+MOCK_POOL_IP = "10.10.10.10"
+MOCK_HOST_1 = "wifitest.adafruit.com"
+MOCK_HOST_2 = "wifitest2.adafruit.com"
+
 
 class MocketPool:  # pylint: disable=too-few-public-methods
     """Mock SocketPool"""
 
     SOCK_STREAM = 0
 
-    def __init__(self):
+    # pylint: disable=unused-argument
+    def __init__(self, radio=None):
         self.getaddrinfo = mock.Mock()
+        self.getaddrinfo.return_value = ((None, None, None, None, (MOCK_POOL_IP, 80)),)
         self.socket = mock.Mock()
 
 
 class Mocket:  # pylint: disable=too-few-public-methods
     """Mock Socket"""
 
-    def __init__(self, response):
+    def __init__(self, response=None):
         self.settimeout = mock.Mock()
         self.close = mock.Mock()
         self.connect = mock.Mock()
@@ -71,3 +77,18 @@ class SSLContext:  # pylint: disable=too-few-public-methods
         self, sock, server_hostname=None
     ):  # pylint: disable=no-self-use,unused-argument
         return sock
+
+
+# pylint: disable=too-few-public-methods
+class MockRadio:
+    class Radio:
+        pass
+
+    class ESP_SPIcontrol:
+        TLS_MODE = 2
+
+    class WIZNET5K:
+        pass
+
+    class Unsupported:
+        pass
