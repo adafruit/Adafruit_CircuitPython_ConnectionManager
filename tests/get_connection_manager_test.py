@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Protocol Tests """
+""" Get Connection Manager Tests """
 
 import mocket
 

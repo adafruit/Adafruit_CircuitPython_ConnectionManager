@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Protocol Tests """
+""" FakeSLLSocket Tests """
 
 import mocket
 import pytest
