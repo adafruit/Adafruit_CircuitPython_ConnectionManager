@@ -96,6 +96,8 @@ This library is used internally by libraries like `Adafruit_CircuitPython_Reques
 <https://github.com/adafruit/Adafruit_CircuitPython_Requests>`_ and `Adafruit_CircuitPython_MiniMQTT
 <https://github.com/adafruit/Adafruit_CircuitPython_MiniMQTT>`_
 
+Usage examples are within the `examples` subfolder of this library.
+
 Documentation
 =============
 API documentation for this library can be found on `Read the Docs <https://docs.circuitpython.org/projects/connectionmanager/en/latest/>`_.

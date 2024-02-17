@@ -83,7 +83,16 @@ class _FakeSSLContext:
 def create_fake_ssl_context(
     socket_pool: SocketpoolModuleType, iface: InterfaceType
 ) -> _FakeSSLContext:
-    """Method to return a fake SSL context for when ssl isn't available to import"""
+    """Method to return a fake SSL context for when ssl isn't available to import
+
+    For example when using a:
+
+     * `Adafruit Ethernet FeatherWing <https://www.adafruit.com/product/3201>`_
+     * `Adafruit AirLift – ESP32 WiFi Co-Processor Breakout Board
+       <https://www.adafruit.com/product/4201>`_
+     * `Adafruit AirLift FeatherWing – ESP32 WiFi Co-Processor
+       <https://www.adafruit.com/product/4264>`_
+    """
     socket_pool.set_interface(iface)
     return _FakeSSLContext(iface)
 
@@ -93,7 +102,14 @@ _global_ssl_contexts = {}
 
 
 def get_radio_socketpool(radio):
-    """Helper to get a socket pool for common boards"""
+    """Helper to get a socket pool for common boards
+
+    Currently supported:
+
+     * Boards with onboard WiFi (ESP32S2, ESP32S3, Pico W, etc)
+     * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
+     * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
+    """
     class_name = radio.__class__.__name__
     if class_name not in _global_socketpool:
         if class_name == "Radio":
@@ -116,7 +132,14 @@ def get_radio_socketpool(radio):
 
 
 def get_radio_ssl_context(radio):
-    """Helper to get ssl_contexts for common boards"""
+    """Helper to get ssl_contexts for common boards
+
+    Currently supported:
+
+     * Boards with onboard WiFi (ESP32S2, ESP32S3, Pico W, etc)
+     * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
+     * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
+    """
     class_name = radio.__class__.__name__
 
     if class_name not in _global_ssl_contexts:
