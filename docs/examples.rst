@@ -1,8 +1,13 @@
+Examples
+========
+
+Below are a few examples, there may be more in the examples folder of the library
+
 Helper example
 --------------
 
-This shows you how to use some helpers to help simplify code
-when writing it for multiple different boards
+This example shows you how to use the ``adafruit_connection_manager`` helpers to help
+simplify code when writing it for multiple different boards
 
 .. literalinclude:: ../examples/connectionmanager_helpers.py
     :caption: examples/connectionmanager_helpers.py
