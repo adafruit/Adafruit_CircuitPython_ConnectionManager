@@ -113,39 +113,11 @@ def get_radio_socketpool(radio):
     class_name = radio.__class__.__name__
     if class_name not in _global_socketpool:
         if class_name == "Radio":
+            import ssl  # pylint: disable=import-outside-toplevel
+
             import socketpool  # pylint: disable=import-outside-toplevel
 
             pool = socketpool.SocketPool(radio)
-
-        elif class_name == "ESP_SPIcontrol":
-            import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
-
-        elif class_name == "WIZNET5K":
-            import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
-
-        else:
-            raise AttributeError(f"Unsupported radio class: {class_name}")
-
-        _global_socketpool[class_name] = pool
-
-    return _global_socketpool[class_name]
-
-
-def get_radio_ssl_context(radio):
-    """Helper to get ssl_contexts for common boards
-
-    Currently supported:
-
-     * Boards with onboard WiFi (ESP32S2, ESP32S3, Pico W, etc)
-     * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
-     * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
-    """
-    class_name = radio.__class__.__name__
-
-    if class_name not in _global_ssl_contexts:
-        if class_name == "Radio":
-            import ssl  # pylint: disable=import-outside-toplevel
-
             ssl_context = ssl.create_default_context()
 
         elif class_name == "ESP_SPIcontrol":
@@ -162,8 +134,23 @@ def get_radio_ssl_context(radio):
         else:
             raise AttributeError(f"Unsupported radio class: {class_name}")
 
+        _global_socketpool[class_name] = pool
         _global_ssl_contexts[class_name] = ssl_context
 
+    return _global_socketpool[class_name]
+
+
+def get_radio_ssl_context(radio):
+    """Helper to get ssl_contexts for common boards
+
+    Currently supported:
+
+     * Boards with onboard WiFi (ESP32S2, ESP32S3, Pico W, etc)
+     * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
+     * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
+    """
+    class_name = radio.__class__.__name__
+    get_radio_socketpool(radio)
     return _global_ssl_contexts[class_name]
 
 
