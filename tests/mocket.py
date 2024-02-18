@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-FileCopyrightText: 2024 Justin Myers for Adafruit Industries
 #
 # SPDX-License-Identifier: Unlicense
 

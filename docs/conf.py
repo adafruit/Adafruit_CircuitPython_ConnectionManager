@@ -50,7 +50,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Adafruit CircuitPython ConnectionManager Library"
-creation_year = "2023"
+creation_year = "2024"
 current_year = str(datetime.datetime.now().year)
 year_duration = (
     current_year

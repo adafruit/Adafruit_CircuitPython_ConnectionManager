@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2024 Justin Myers
+# SPDX-FileCopyrightText: 2024 Justin Myers for Adafruit Industries
 #
 # SPDX-License-Identifier: Unlicense
 
