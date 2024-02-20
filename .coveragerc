@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2024 Justin Myers for Adafruit Industries
+#
+# SPDX-License-Identifier: Unlicense
+
+[report]
+exclude_lines =
+    # pragma: no cover
+    if not sys.implementation.name == "circuitpython":
