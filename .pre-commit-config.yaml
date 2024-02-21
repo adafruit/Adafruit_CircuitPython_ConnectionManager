@@ -37,7 +37,7 @@ repos:
         types: [python]
         files: "^examples/"
         args:
-          - --disable=consider-using-f-string,duplicate-code,missing-docstring,invalid-name,
+          - --disable=consider-using-f-string,duplicate-code,missing-docstring,invalid-name
       - id: pylint
         name: pylint (test code)
         description: Run pylint rules on "tests/*.py" files
