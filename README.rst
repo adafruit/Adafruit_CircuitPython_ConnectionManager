@@ -78,7 +78,7 @@ following command to install:
 
 .. code-block:: shell
 
-    circup install adafruit_connectionmanager
+    circup install adafruit_connection_manager
 
 Or the following command to update an existing version:
 
