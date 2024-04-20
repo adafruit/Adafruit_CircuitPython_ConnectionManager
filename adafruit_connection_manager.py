@@ -128,8 +128,28 @@ def get_radio_socketpool(radio):
         elif class_name == "WIZNET5K":
             import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
 
-            # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
-            ssl_context = create_fake_ssl_context(pool, radio)
+            # Note: At this time, SSL/TLS connections are not supported by older
+            # versions of the Wiznet5k library or on boards withouut the ssl module
+            # see https://docs.circuitpython.org/en/latest/shared-bindings/support_matrix.html
+            ssl_context = None
+            try_ssl = False
+            cp_version = sys.implementation[1]
+            if pool.SOCK_STREAM == 1 and cp_version[0] >= 9:
+                if cp_version[0] > 9:
+                    try_ssl = True
+                elif cp_version[0] == 9 and cp_version[1] >= 1:
+                    try_ssl = True
+
+                if try_ssl:
+                    try:
+                        import ssl  # pylint: disable=import-outside-toplevel
+
+                        ssl_context = ssl.create_default_context()
+                    except ImportError:
+                        """SSL not on board default to fake_ssl_context"""
+
+            if ssl_context is None:
+                ssl_context = create_fake_ssl_context(pool, radio)
 
         else:
             raise AttributeError(f"Unsupported radio class: {class_name}")

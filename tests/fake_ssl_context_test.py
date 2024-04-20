@@ -4,6 +4,8 @@
 
 """ FakeSLLSocket Tests """
 
+from unittest import mock
+
 import mocket
 import pytest
 
@@ -34,7 +36,8 @@ def test_connect_https_not_supported():
     mock_pool.socket.return_value = mock_socket_1
 
     radio = mocket.MockRadio.WIZNET5K()
-    ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
+    with mock.patch("sys.implementation", return_value=[9, 0, 0]):
+        ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # verify a HTTPS call for a board without built in WiFi and SSL support errors

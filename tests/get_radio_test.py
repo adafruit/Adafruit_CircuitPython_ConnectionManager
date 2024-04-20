@@ -5,6 +5,7 @@
 """ Get socketpool and ssl_context Tests """
 
 import ssl
+from unittest import mock
 
 import mocket
 import pytest
@@ -26,7 +27,8 @@ def test_get_radio_socketpool_esp32spi():
 
 def test_get_radio_socketpool_wiznet5k():
     radio = mocket.MockRadio.WIZNET5K()
-    socket_pool = adafruit_connection_manager.get_radio_socketpool(radio)
+    with mock.patch("sys.implementation", return_value=[9, 0, 0]):
+        socket_pool = adafruit_connection_manager.get_radio_socketpool(radio)
     assert socket_pool.__name__ == "adafruit_wiznet5k_socket"
 
 
@@ -58,7 +60,8 @@ def test_get_radio_ssl_context_esp32spi():
 
 def test_get_radio_ssl_context_wiznet5k():
     radio = mocket.MockRadio.WIZNET5K()
-    ssl_contexts = adafruit_connection_manager.get_radio_ssl_context(radio)
+    with mock.patch("sys.implementation", return_value=[9, 0, 0]):
+        ssl_contexts = adafruit_connection_manager.get_radio_ssl_context(radio)
     assert isinstance(ssl_contexts, adafruit_connection_manager._FakeSSLContext)
 
 

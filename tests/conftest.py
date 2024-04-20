@@ -7,6 +7,7 @@
 import sys
 
 import mocket
+import pytest
 
 
 # pylint: disable=unused-argument
@@ -27,5 +28,18 @@ sys.modules["adafruit_esp32spi.adafruit_esp32spi_socket"] = esp32spi_socket_modu
 wiznet5k_module = type(sys)("adafruit_wiznet5k")
 wiznet5k_socket_module = type(sys)("adafruit_wiznet5k_socket")
 wiznet5k_socket_module.set_interface = set_interface
+wiznet5k_socket_module.SOCK_STREAM = 0x21
 sys.modules["adafruit_wiznet5k"] = wiznet5k_module
 sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socket"] = wiznet5k_socket_module
+
+
+@pytest.fixture(autouse=True)
+def reset_connection_manager(monkeypatch):
+    monkeypatch.setattr(
+        "adafruit_connection_manager._global_socketpool",
+        {},
+    )
+    monkeypatch.setattr(
+        "adafruit_connection_manager._global_ssl_contexts",
+        {},
+    )
