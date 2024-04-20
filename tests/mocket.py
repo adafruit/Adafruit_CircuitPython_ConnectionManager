@@ -10,6 +10,13 @@ from unittest import mock
 MOCK_POOL_IP = "10.10.10.10"
 MOCK_HOST_1 = "wifitest.adafruit.com"
 MOCK_HOST_2 = "wifitest2.adafruit.com"
+MOCK_PATH_1 = "/testwifi/index.html"
+MOCK_ENDPOINT_1 = MOCK_HOST_1 + MOCK_PATH_1
+MOCK_ENDPOINT_2 = MOCK_HOST_2 + MOCK_PATH_1
+MOCK_RESPONSE_TEXT = (
+    b"This is a test of Adafruit WiFi!\r\nIf you can read this, its working :)"
+)
+MOCK_RESPONSE = b"HTTP/1.0 200 OK\r\nContent-Length: 70\r\n\r\n" + MOCK_RESPONSE_TEXT
 
 
 class MocketPool:  # pylint: disable=too-few-public-methods
@@ -27,7 +34,7 @@ class MocketPool:  # pylint: disable=too-few-public-methods
 class Mocket:  # pylint: disable=too-few-public-methods
     """Mock Socket"""
 
-    def __init__(self, response=None):
+    def __init__(self, response=MOCK_RESPONSE):
         self.settimeout = mock.Mock()
         self.close = mock.Mock()
         self.connect = mock.Mock()
@@ -35,14 +42,17 @@ class Mocket:  # pylint: disable=too-few-public-methods
         self.readline = mock.Mock(side_effect=self._readline)
         self.recv = mock.Mock(side_effect=self._recv)
         self.recv_into = mock.Mock(side_effect=self._recv_into)
+        # Test helpers
         self._response = response
         self._position = 0
         self.fail_next_send = False
+        self.sent_data = []
 
     def _send(self, data):
         if self.fail_next_send:
             self.fail_next_send = False
             return 0
+        self.sent_data.append(data)
         return len(data)
 
     def _readline(self):
