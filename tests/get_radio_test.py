@@ -27,7 +27,7 @@ def test_get_radio_socketpool_esp32spi():
 def test_get_radio_socketpool_wiznet5k():
     radio = mocket.MockRadio.WIZNET5K()
     socket_pool = adafruit_connection_manager.get_radio_socketpool(radio)
-    assert socket_pool.__name__ == "adafruit_wiznet5k_socket"
+    assert socket_pool.__module__ == "adafruit_wiznet5k.adafruit_wiznet5k_socketpool"
 
 
 def test_get_radio_socketpool_unsupported():

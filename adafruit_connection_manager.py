@@ -93,7 +93,8 @@ def create_fake_ssl_context(
      * `Adafruit AirLift FeatherWing – ESP32 WiFi Co-Processor
        <https://www.adafruit.com/product/4264>`_
     """
-    socket_pool.set_interface(iface)
+    if hasattr(socket_pool, "set_interface"):
+        socket_pool.set_interface(iface)
     return _FakeSSLContext(iface)
 
 
@@ -126,7 +127,9 @@ def get_radio_socketpool(radio):
             ssl_context = create_fake_ssl_context(pool, radio)
 
         elif class_name == "WIZNET5K":
-            import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
+            import adafruit_wiznet5k.adafruit_wiznet5k_socketpool as socketpool  # pylint: disable=import-outside-toplevel
+
+            pool = socketpool.SocketPool(radio)
 
             # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
             ssl_context = create_fake_ssl_context(pool, radio)

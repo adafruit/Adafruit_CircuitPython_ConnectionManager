@@ -25,7 +25,12 @@ sys.modules["adafruit_esp32spi"] = esp32spi_module
 sys.modules["adafruit_esp32spi.adafruit_esp32spi_socket"] = esp32spi_socket_module
 
 wiznet5k_module = type(sys)("adafruit_wiznet5k")
-wiznet5k_socket_module = type(sys)("adafruit_wiznet5k_socket")
-wiznet5k_socket_module.set_interface = set_interface
+wiznet5k_socketpool_module = type(sys)("adafruit_wiznet5k_socketpool")
+wiznet5k_socketpool_module.SocketPool = mocket.MocketPool
+wiznet5k_socketpool_module.SocketPool.__module__ = (  # pylint: disable=no-member
+    "adafruit_wiznet5k.adafruit_wiznet5k_socketpool"
+)
 sys.modules["adafruit_wiznet5k"] = wiznet5k_module
-sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socket"] = wiznet5k_socket_module
+sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"] = (
+    wiznet5k_socketpool_module
+)
