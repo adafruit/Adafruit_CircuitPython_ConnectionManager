@@ -29,6 +29,8 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_ConnectionManager
 import errno
 import sys
 
+WIZNET5K_SSL_SUPPORT_VERSION = (9, 1)
+
 # typing
 
 
@@ -132,21 +134,15 @@ def get_radio_socketpool(radio):
             # versions of the Wiznet5k library or on boards withouut the ssl module
             # see https://docs.circuitpython.org/en/latest/shared-bindings/support_matrix.html
             ssl_context = None
-            try_ssl = False
             cp_version = sys.implementation[1]
-            if pool.SOCK_STREAM == 1 and cp_version[0] >= 9:
-                if cp_version[0] > 9:
-                    try_ssl = True
-                elif cp_version[0] == 9 and cp_version[1] >= 1:
-                    try_ssl = True
+            if pool.SOCK_STREAM == 1 and cp_version >= WIZNET5K_SSL_SUPPORT_VERSION:
+                try:
+                    import ssl  # pylint: disable=import-outside-toplevel
 
-                if try_ssl:
-                    try:
-                        import ssl  # pylint: disable=import-outside-toplevel
-
-                        ssl_context = ssl.create_default_context()
-                    except ImportError:
-                        """SSL not on board default to fake_ssl_context"""
+                    ssl_context = ssl.create_default_context()
+                    pool.set_interface(radio)
+                except ImportError:
+                    """SSL not on board default to fake_ssl_context"""
 
             if ssl_context is None:
                 ssl_context = create_fake_ssl_context(pool, radio)
