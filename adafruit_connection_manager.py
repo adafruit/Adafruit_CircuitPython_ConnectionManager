@@ -56,6 +56,10 @@ class _FakeSSLSocket:
         self.recv = socket.recv
         self.close = socket.close
         self.recv_into = socket.recv_into
+        if hasattr(socket, "_interface"):
+            self._interface = socket._interface
+        if hasattr(socket, "_socket_pool"):
+            self._socket_pool = socket._socket_pool
 
     def connect(self, address: Tuple[str, int]) -> None:
         """Connect wrapper to add non-standard mode parameter"""
@@ -93,7 +97,10 @@ def create_fake_ssl_context(
      * `Adafruit AirLift FeatherWing – ESP32 WiFi Co-Processor
        <https://www.adafruit.com/product/4264>`_
     """
-    socket_pool.set_interface(iface)
+    if hasattr(socket_pool, "set_interface"):
+        # this is to manually support legacy hardware like the fona
+        socket_pool.set_interface(iface)
+
     return _FakeSSLContext(iface)
 
 
@@ -121,12 +128,15 @@ def get_radio_socketpool(radio):
             ssl_context = ssl.create_default_context()
 
         elif class_name == "ESP_SPIcontrol":
-            import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
+            import adafruit_esp32spi.adafruit_esp32spi_socketpool as socketpool  # pylint: disable=import-outside-toplevel
 
+            pool = socketpool.SocketPool(radio)
             ssl_context = create_fake_ssl_context(pool, radio)
 
         elif class_name == "WIZNET5K":
-            import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
+            import adafruit_wiznet5k.adafruit_wiznet5k_socketpool as socketpool  # pylint: disable=import-outside-toplevel
+
+            pool = socketpool.SocketPool(radio)
 
             # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
             ssl_context = create_fake_ssl_context(pool, radio)
