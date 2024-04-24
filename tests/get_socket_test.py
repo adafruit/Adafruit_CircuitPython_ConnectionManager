@@ -217,7 +217,9 @@ def test_get_socket_runtime_error_ties_again_only_once():
     free_sockets_mock.assert_called_once()
 
 
-def test_fake_ssl_context_connect():
+def test_fake_ssl_context_connect(  # pylint: disable=unused-argument
+    adafruit_esp32spi_socket_module,
+):
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
     mock_pool.socket.return_value = mock_socket_1
@@ -234,7 +236,9 @@ def test_fake_ssl_context_connect():
     socket._socket.connect.assert_called_once()
 
 
-def test_fake_ssl_context_connect_error():
+def test_fake_ssl_context_connect_error(  # pylint: disable=unused-argument
+    adafruit_esp32spi_socket_module,
+):
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
     mock_pool.socket.return_value = mock_socket_1
