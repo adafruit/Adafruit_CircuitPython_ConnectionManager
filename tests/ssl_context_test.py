@@ -53,10 +53,7 @@ def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argumen
     mock_pool = mocket.MocketPool()
     radio = mocket.MockRadio.WIZNET5K()
     old_version = (WIZNET5K_SSL_SUPPORT_VERSION[0] - 1, 0, 0)
-    with mock.patch(
-        "sys.implementation",
-        (None, old_version)
-    ):
+    with mock.patch("sys.implementation", (None, old_version)):
         ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
@@ -72,9 +69,6 @@ def test_connect_wiznet5k_https_supported(  # pylint: disable=unused-argument
     adafruit_wiznet5k_with_ssl_socket_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
-    with mock.patch(
-        "sys.implementation",
-        (None, WIZNET5K_SSL_SUPPORT_VERSION)
-    ):
+    with mock.patch("sys.implementation", (None, WIZNET5K_SSL_SUPPORT_VERSION)):
         ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     assert isinstance(ssl_context, ssl.SSLContext)
