@@ -49,6 +49,19 @@ def adafruit_wiznet5k_socket_module():
     del sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socket"]
 
 
+@pytest.fixture
+def adafruit_wiznet5k_with_ssl_socket_module():
+    wiznet5k_module = type(sys)("adafruit_wiznet5k")
+    wiznet5k_socket_module = type(sys)("adafruit_wiznet5k_socket")
+    wiznet5k_socket_module.set_interface = set_interface
+    wiznet5k_socket_module.SOCK_STREAM = 1
+    sys.modules["adafruit_wiznet5k"] = wiznet5k_module
+    sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socket"] = wiznet5k_socket_module
+    yield
+    del sys.modules["adafruit_wiznet5k"]
+    del sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socket"]
+
+
 @pytest.fixture(autouse=True)
 def reset_connection_manager(monkeypatch):
     monkeypatch.setattr(
