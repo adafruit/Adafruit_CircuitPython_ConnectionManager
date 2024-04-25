@@ -142,7 +142,7 @@ def get_radio_socketpool(radio):
                     ssl_context = ssl.create_default_context()
                     pool.set_interface(radio)
                 except ImportError:
-                    """SSL not on board default to fake_ssl_context"""
+                    # if SSL not on board, default to fake_ssl_context
 
             if ssl_context is None:
                 ssl_context = create_fake_ssl_context(pool, radio)
