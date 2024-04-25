@@ -11,6 +11,7 @@ import mocket
 import pytest
 
 import adafruit_connection_manager
+from adafruit_connection_manager import WIZNET5K_SSL_SUPPORT_VERSION
 
 
 def test_connect_esp32spi_https(  # pylint: disable=unused-argument
@@ -51,7 +52,11 @@ def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argumen
 ):
     mock_pool = mocket.MocketPool()
     radio = mocket.MockRadio.WIZNET5K()
-    with mock.patch("sys.implementation", return_value=[9, 0, 0]):
+    old_version = (WIZNET5K_SSL_SUPPORT_VERSION[0] - 1, 0, 0)
+    with mock.patch(
+        "sys.implementation",
+        (None, old_version)
+    ):
         ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
@@ -61,3 +66,15 @@ def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argumen
             mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
         )
     assert "This radio does not support TLS/HTTPS" in str(context)
+
+
+def test_connect_wiznet5k_https_supported(  # pylint: disable=unused-argument
+    adafruit_wiznet5k_with_ssl_socket_module,
+):
+    radio = mocket.MockRadio.WIZNET5K()
+    with mock.patch(
+        "sys.implementation",
+        (None, WIZNET5K_SSL_SUPPORT_VERSION)
+    ):
+        ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
+    assert isinstance(ssl_context, ssl.SSLContext)
