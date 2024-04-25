@@ -2,8 +2,9 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" FakeSLLSocket Tests """
+""" SLL Context Tests """
 
+import ssl
 from unittest import mock
 
 import mocket
@@ -12,10 +13,16 @@ import pytest
 import adafruit_connection_manager
 
 
-def test_connect_https():
+def test_connect_esp32spi_https(  # pylint: disable=unused-argument
+    adafruit_esp32spi_socket_module,
+):
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
-    mock_pool.socket.return_value = mock_socket_1
+    mock_socket_2 = mocket.Mocket()
+    mock_pool.socket.side_effect = [
+        mock_socket_1,
+        mock_socket_2,
+    ]
 
     radio = mocket.MockRadio.ESP_SPIcontrol()
     ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
@@ -26,15 +33,23 @@ def test_connect_https():
         mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
     )
     assert socket != mock_socket_1
+    assert socket != mock_socket_2
     assert socket._socket == mock_socket_1
     assert isinstance(socket, adafruit_connection_manager._FakeSSLSocket)
 
 
-def test_connect_https_not_supported():
-    mock_pool = mocket.MocketPool()
-    mock_socket_1 = mocket.Mocket()
-    mock_pool.socket.return_value = mock_socket_1
+def test_connect_wifi_https(  # pylint: disable=unused-argument
+    circuitpython_socketpool_module,
+):
+    radio = mocket.MockRadio.Radio()
+    ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
+    assert isinstance(ssl_context, ssl.SSLContext)
 
+
+def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argument
+    adafruit_wiznet5k_socket_module,
+):
+    mock_pool = mocket.MocketPool()
     radio = mocket.MockRadio.WIZNET5K()
     with mock.patch("sys.implementation", return_value=[9, 0, 0]):
         ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
