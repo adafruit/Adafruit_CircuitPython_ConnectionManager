@@ -306,12 +306,11 @@ class ConnectionManager:
 # global helpers
 
 
-_global_connection_manager = None  # pylint: disable=invalid-name
+_global_connection_manager = {}
 
 
-def get_connection_manager(socket_pool: SocketpoolModuleType) -> None:
-    """Get the ConnectionManager singleton"""
-    global _global_connection_manager  # pylint: disable=global-statement
-    if _global_connection_manager is None:
-        _global_connection_manager = ConnectionManager(socket_pool)
-    return _global_connection_manager
+def get_connection_manager(socket_pool: SocketpoolModuleType) -> ConnectionManager:
+    """Get the ConnectionManager singleton for the given pool"""
+    if socket_pool not in _global_connection_manager:
+        _global_connection_manager[socket_pool] = ConnectionManager(socket_pool)
+    return _global_connection_manager[socket_pool]
