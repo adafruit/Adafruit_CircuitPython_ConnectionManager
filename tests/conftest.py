@@ -65,7 +65,11 @@ def adafruit_wiznet5k_with_ssl_socket_module():
 @pytest.fixture(autouse=True)
 def reset_connection_manager(monkeypatch):
     monkeypatch.setattr(
-        "adafruit_connection_manager._global_socketpool",
+        "adafruit_connection_manager._global_connection_managers",
+        {},
+    )
+    monkeypatch.setattr(
+        "adafruit_connection_manager._global_socketpools",
         {},
     )
     monkeypatch.setattr(

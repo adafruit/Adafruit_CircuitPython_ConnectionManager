@@ -24,14 +24,38 @@ ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
 
 # get request session
 requests = adafruit_requests.Session(pool, ssl_context)
+connection_manager = adafruit_connection_manager.get_connection_manager(pool)
+print("-" * 40)
+print("Nothing yet opened")
+print(f"Open Sockets: {connection_manager.open_sockets}")
+print(f"Freeable Open Sockets: {connection_manager.freeable_open_sockets}")
 
 # make request
 print("-" * 40)
-print(f"Fetching from {TEXT_URL}")
+print(f"Fetching from {TEXT_URL} in a context handler")
+with requests.get(TEXT_URL) as response:
+    response_text = response.text
+    print(f"Text Response {response_text}")
 
-response = requests.get(TEXT_URL)
-response_text = response.text
-response.close()
-
-print(f"Text Response {response_text}")
 print("-" * 40)
+print("1 request, opened and freed")
+print(f"Open Sockets: {connection_manager.open_sockets}")
+print(f"Freeable Open Sockets: {connection_manager.freeable_open_sockets}")
+
+print("-" * 40)
+print(f"Fetching from {TEXT_URL} not in a context handler")
+response = requests.get(TEXT_URL)
+
+print("-" * 40)
+print("1 request, opened but not freed")
+print(f"Open Sockets: {connection_manager.open_sockets}")
+print(f"Freeable Open Sockets: {connection_manager.freeable_open_sockets}")
+
+print("-" * 40)
+print("Closing everything in the pool")
+adafruit_connection_manager.connection_manager_close_all(pool)
+
+print("-" * 40)
+print("Everything closed")
+print(f"Open Sockets: {connection_manager.open_sockets}")
+print(f"Freeable Open Sockets: {connection_manager.freeable_open_sockets}")

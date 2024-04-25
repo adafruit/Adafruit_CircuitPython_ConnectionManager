@@ -16,6 +16,8 @@ def test_free_socket():
     mock_pool.socket.return_value = mock_socket_1
 
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
+    assert connection_manager.open_sockets == 0
+    assert connection_manager.freeable_open_sockets == 0
 
     # validate socket is tracked and not available
     socket = connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
@@ -24,12 +26,16 @@ def test_free_socket():
     assert socket in connection_manager._available_socket
     assert connection_manager._available_socket[socket] is False
     assert key in connection_manager._open_sockets
+    assert connection_manager.open_sockets == 1
+    assert connection_manager.freeable_open_sockets == 0
 
     # validate socket is tracked and is available
     connection_manager.free_socket(socket)
     assert socket in connection_manager._available_socket
     assert connection_manager._available_socket[socket] is True
     assert key in connection_manager._open_sockets
+    assert connection_manager.open_sockets == 1
+    assert connection_manager.freeable_open_sockets == 1
 
 
 def test_free_socket_not_managed():
@@ -54,26 +60,36 @@ def test_free_sockets():
     ]
 
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
+    assert connection_manager.open_sockets == 0
+    assert connection_manager.freeable_open_sockets == 0
 
     # validate socket is tracked and not available
     socket_1 = connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
     assert socket_1 == mock_socket_1
     assert socket_1 in connection_manager._available_socket
     assert connection_manager._available_socket[socket_1] is False
+    assert connection_manager.open_sockets == 1
+    assert connection_manager.freeable_open_sockets == 0
 
     socket_2 = connection_manager.get_socket(mocket.MOCK_HOST_2, 80, "http:")
     assert socket_2 == mock_socket_2
+    assert connection_manager.open_sockets == 2
+    assert connection_manager.freeable_open_sockets == 0
 
     # validate socket is tracked and is available
     connection_manager.free_socket(socket_1)
     assert socket_1 in connection_manager._available_socket
     assert connection_manager._available_socket[socket_1] is True
+    assert connection_manager.open_sockets == 2
+    assert connection_manager.freeable_open_sockets == 1
 
     # validate socket is no longer tracked
     connection_manager._free_sockets()
     assert socket_1 not in connection_manager._available_socket
     assert socket_2 in connection_manager._available_socket
     mock_socket_1.close.assert_called_once()
+    assert connection_manager.open_sockets == 1
+    assert connection_manager.freeable_open_sockets == 0
 
 
 def test_get_key_for_socket():

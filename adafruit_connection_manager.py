@@ -99,7 +99,8 @@ def create_fake_ssl_context(
     return _FakeSSLContext(iface)
 
 
-_global_socketpool = {}
+_global_connection_managers = {}
+_global_socketpools = {}
 _global_ssl_contexts = {}
 
 
@@ -113,7 +114,7 @@ def get_radio_socketpool(radio):
      * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
     """
     class_name = radio.__class__.__name__
-    if class_name not in _global_socketpool:
+    if class_name not in _global_socketpools:
         if class_name == "Radio":
             import ssl  # pylint: disable=import-outside-toplevel
 
@@ -151,10 +152,10 @@ def get_radio_socketpool(radio):
         else:
             raise AttributeError(f"Unsupported radio class: {class_name}")
 
-        _global_socketpool[class_name] = pool
+        _global_socketpools[class_name] = pool
         _global_ssl_contexts[class_name] = ssl_context
 
-    return _global_socketpool[class_name]
+    return _global_socketpools[class_name]
 
 
 def get_radio_ssl_context(radio):
@@ -186,10 +187,10 @@ class ConnectionManager:
         self._available_socket = {}
         self._open_sockets = {}
 
-    def _free_sockets(self) -> None:
+    def _free_sockets(self, force: bool = False) -> None:
         available_sockets = []
         for socket, free in self._available_socket.items():
-            if free:
+            if free or force:
                 available_sockets.append(socket)
 
         for socket in available_sockets:
@@ -202,6 +203,18 @@ class ConnectionManager:
             )
         except StopIteration:
             return None
+
+    @property
+    def open_sockets(self) -> int:
+        """Get the count of open sockets"""
+        return len(self._open_sockets)
+
+    @property
+    def freeable_open_sockets(self) -> int:
+        """Get the count of freeable open sockets"""
+        return len(
+            [socket for socket, free in self._available_socket.items() if free is True]
+        )
 
     def close_socket(self, socket: SocketType) -> None:
         """Close a previously opened socket."""
@@ -306,11 +319,25 @@ class ConnectionManager:
 # global helpers
 
 
-_global_connection_manager = {}
+def connection_manager_close_all(
+    socket_pool: Optional[SocketpoolModuleType] = None,
+) -> None:
+    """Close all open sockets for pool"""
+    if socket_pool:
+        keys = [socket_pool]
+    else:
+        keys = _global_connection_managers.keys()
+
+    for key in keys:
+        connection_manager = _global_connection_managers.get(key, None)
+        if connection_manager is None:
+            raise RuntimeError("SocketPool not managed")
+
+        connection_manager._free_sockets(force=True)  # pylint: disable=protected-access
 
 
 def get_connection_manager(socket_pool: SocketpoolModuleType) -> ConnectionManager:
     """Get the ConnectionManager singleton for the given pool"""
-    if socket_pool not in _global_connection_manager:
-        _global_connection_manager[socket_pool] = ConnectionManager(socket_pool)
-    return _global_connection_manager[socket_pool]
+    if socket_pool not in _global_connection_managers:
+        _global_connection_managers[socket_pool] = ConnectionManager(socket_pool)
+    return _global_connection_managers[socket_pool]
