@@ -18,7 +18,9 @@ def test_get_connection_manager():
     assert connection_manager_1 == connection_manager_2
 
 
-def test_different_connection_manager_different_pool():
+def test_different_connection_manager_different_pool(  # pylint: disable=unused-argument
+    circuitpython_socketpool_module, adafruit_esp32spi_socket_module
+):
     radio_wifi = mocket.MockRadio.Radio()
     radio_esp = mocket.MockRadio.ESP_SPIcontrol()
 
