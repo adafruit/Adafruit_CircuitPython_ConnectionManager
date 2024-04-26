@@ -29,6 +29,8 @@ __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_ConnectionManager
 import errno
 import sys
 
+WIZNET5K_SSL_SUPPORT_VERSION = (9, 1)
+
 # typing
 
 
@@ -138,8 +140,23 @@ def get_radio_socketpool(radio):
 
             pool = socketpool.SocketPool(radio)
 
-            # Note: SSL/TLS connections are not supported by the Wiznet5k library at this time
-            ssl_context = create_fake_ssl_context(pool, radio)
+            # Note: At this time, SSL/TLS connections are not supported by older
+            # versions of the Wiznet5k library or on boards withouut the ssl module
+            # see https://docs.circuitpython.org/en/latest/shared-bindings/support_matrix.html
+            ssl_context = None
+            cp_version = sys.implementation[1]
+            if pool.SOCK_STREAM == 1 and cp_version >= WIZNET5K_SSL_SUPPORT_VERSION:
+                try:
+                    import ssl  # pylint: disable=import-outside-toplevel
+
+                    ssl_context = ssl.create_default_context()
+                    pool.set_interface(radio)
+                except ImportError:
+                    # if SSL not on board, default to fake_ssl_context
+                    pass
+
+            if ssl_context is None:
+                ssl_context = create_fake_ssl_context(pool, radio)
 
         else:
             raise AttributeError(f"Unsupported radio class: {class_name}")
@@ -299,12 +316,11 @@ class ConnectionManager:
 # global helpers
 
 
-_global_connection_manager = None  # pylint: disable=invalid-name
+_global_connection_manager = {}
 
 
-def get_connection_manager(socket_pool: SocketpoolModuleType) -> None:
-    """Get the ConnectionManager singleton"""
-    global _global_connection_manager  # pylint: disable=global-statement
-    if _global_connection_manager is None:
-        _global_connection_manager = ConnectionManager(socket_pool)
-    return _global_connection_manager
+def get_connection_manager(socket_pool: SocketpoolModuleType) -> ConnectionManager:
+    """Get the ConnectionManager singleton for the given pool"""
+    if socket_pool not in _global_connection_manager:
+        _global_connection_manager[socket_pool] = ConnectionManager(socket_pool)
+    return _global_connection_manager[socket_pool]
