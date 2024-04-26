@@ -13,6 +13,18 @@ import pytest
 import adafruit_connection_manager
 
 
+def test__get_radio_hash_key():
+    radio = mocket.MockRadio.Radio()
+    assert adafruit_connection_manager._get_radio_hash_key(radio) == hash(radio)
+
+
+def test__get_radio_hash_key_not_hashable():
+    radio = mocket.MockRadio.Radio()
+
+    with mock.patch("builtins.hash", side_effect=TypeError()):
+        assert adafruit_connection_manager._get_radio_hash_key(radio) == "Radio"
+
+
 def test_get_radio_socketpool_wifi(  # pylint: disable=unused-argument
     circuitpython_socketpool_module,
 ):

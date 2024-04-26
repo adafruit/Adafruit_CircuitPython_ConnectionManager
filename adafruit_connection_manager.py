@@ -111,11 +111,10 @@ _global_ssl_contexts = {}
 
 
 def _get_radio_hash_key(radio):
-    class_name = radio.__class__.__name__
-    # trying to use wifi.radio as a key results in:
-    #   TypeError: unsupported type for __hash__: 'Radio'
-    # So just use the class name in this case
-    return class_name if class_name == "Radio" else radio
+    try:
+        return hash(radio)
+    except TypeError:
+        return radio.__class__.__name__
 
 
 def get_radio_socketpool(radio):
