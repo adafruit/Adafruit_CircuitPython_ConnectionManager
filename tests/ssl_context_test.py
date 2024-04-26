@@ -66,7 +66,7 @@ def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argumen
 
 
 def test_connect_wiznet5k_https_supported(  # pylint: disable=unused-argument
-    adafruit_wiznet5k_with_ssl_socket_module,
+    adafruit_wiznet5k_with_ssl_socketpool_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
     with mock.patch("sys.implementation", (None, WIZNET5K_SSL_SUPPORT_VERSION)):

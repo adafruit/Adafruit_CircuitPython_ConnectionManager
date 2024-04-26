@@ -150,7 +150,6 @@ def get_radio_socketpool(radio):
                     import ssl  # pylint: disable=import-outside-toplevel
 
                     ssl_context = ssl.create_default_context()
-                    pool.set_interface(radio)
                 except ImportError:
                     # if SSL not on board, default to fake_ssl_context
                     pass

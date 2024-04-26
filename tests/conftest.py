@@ -10,11 +10,6 @@ import mocket
 import pytest
 
 
-# pylint: disable=unused-argument
-def set_interface(iface):
-    """Helper to set the global internet interface"""
-
-
 class SocketPool:
     name = None
 
@@ -32,6 +27,14 @@ class ESP32SPI_SocketPool(SocketPool):  # pylint: disable=too-few-public-methods
 
 class WIZNET5K_SocketPool(SocketPool):  # pylint: disable=too-few-public-methods
     name = "adafruit_wiznet5k_socketpool"
+    SOCK_STREAM = 0x21
+
+
+class WIZNET5K_With_SSL_SocketPool(
+    SocketPool
+):  # pylint: disable=too-few-public-methods
+    name = "adafruit_wiznet5k_socketpool"
+    SOCK_STREAM = 0x1
 
 
 @pytest.fixture
@@ -62,7 +65,6 @@ def adafruit_wiznet5k_socketpool_module():
     wiznet5k_module = type(sys)("adafruit_wiznet5k")
     wiznet5k_socketpool_module = type(sys)("adafruit_wiznet5k_socketpool")
     wiznet5k_socketpool_module.SocketPool = WIZNET5K_SocketPool
-    wiznet5k_socketpool_module.SOCK_STREAM = 0x21
     sys.modules["adafruit_wiznet5k"] = wiznet5k_module
     sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"] = (
         wiznet5k_socketpool_module
@@ -73,16 +75,17 @@ def adafruit_wiznet5k_socketpool_module():
 
 
 @pytest.fixture
-def adafruit_wiznet5k_with_ssl_socket_module():
+def adafruit_wiznet5k_with_ssl_socketpool_module():
     wiznet5k_module = type(sys)("adafruit_wiznet5k")
-    wiznet5k_socket_module = type(sys)("adafruit_wiznet5k_socket")
-    wiznet5k_socket_module.set_interface = set_interface
-    wiznet5k_socket_module.SOCK_STREAM = 1
+    wiznet5k_socketpool_module = type(sys)("adafruit_wiznet5k_socketpool")
+    wiznet5k_socketpool_module.SocketPool = WIZNET5K_With_SSL_SocketPool
     sys.modules["adafruit_wiznet5k"] = wiznet5k_module
-    sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socket"] = wiznet5k_socket_module
+    sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"] = (
+        wiznet5k_socketpool_module
+    )
     yield
     del sys.modules["adafruit_wiznet5k"]
-    del sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socket"]
+    del sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"]
 
 
 @pytest.fixture(autouse=True)
