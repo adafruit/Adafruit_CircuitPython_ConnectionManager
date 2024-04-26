@@ -110,6 +110,14 @@ _global_socketpool = {}
 _global_ssl_contexts = {}
 
 
+def _get_radio_hash_key(radio):
+    class_name = radio.__class__.__name__
+    # trying to use wifi.radio as a key results in:
+    #   TypeError: unsupported type for __hash__: 'Radio'
+    # So just use the class name in this case
+    return class_name if class_name == "Radio" else radio
+
+
 def get_radio_socketpool(radio):
     """Helper to get a socket pool for common boards
 
@@ -119,8 +127,9 @@ def get_radio_socketpool(radio):
      * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
      * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
     """
-    class_name = radio.__class__.__name__
-    if class_name not in _global_socketpool:
+    key = _get_radio_hash_key(radio)
+    if key not in _global_socketpool:
+        class_name = radio.__class__.__name__
         if class_name == "Radio":
             import ssl  # pylint: disable=import-outside-toplevel
 
@@ -160,10 +169,10 @@ def get_radio_socketpool(radio):
         else:
             raise AttributeError(f"Unsupported radio class: {class_name}")
 
-        _global_socketpool[class_name] = pool
-        _global_ssl_contexts[class_name] = ssl_context
+        _global_socketpool[key] = pool
+        _global_ssl_contexts[key] = ssl_context
 
-    return _global_socketpool[class_name]
+    return _global_socketpool[key]
 
 
 def get_radio_ssl_context(radio):
@@ -175,9 +184,8 @@ def get_radio_ssl_context(radio):
      * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
      * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
     """
-    class_name = radio.__class__.__name__
     get_radio_socketpool(radio)
-    return _global_ssl_contexts[class_name]
+    return _global_ssl_contexts[_get_radio_hash_key(radio)]
 
 
 # main class
