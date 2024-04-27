@@ -320,20 +320,37 @@ class ConnectionManager:
 
 
 def connection_manager_close_all(
-    socket_pool: Optional[SocketpoolModuleType] = None,
+    socket_pool: Optional[SocketpoolModuleType] = None, release_references: bool = False
 ) -> None:
     """Close all open sockets for pool"""
     if socket_pool:
-        keys = [socket_pool]
+        socket_pools = [socket_pool]
     else:
-        keys = _global_connection_managers.keys()
+        socket_pools = _global_connection_managers.keys()
 
-    for key in keys:
-        connection_manager = _global_connection_managers.get(key, None)
+    for pool in socket_pools:
+        connection_manager = _global_connection_managers.get(pool, None)
         if connection_manager is None:
             raise RuntimeError("SocketPool not managed")
 
         connection_manager._free_sockets(force=True)  # pylint: disable=protected-access
+
+        if release_references:
+            radio_key = None
+            for radio_check, pool_check in _global_socketpools.items():
+                if pool == pool_check:
+                    radio_key = radio_check
+                    break
+
+            if radio_key:
+                if radio_key in _global_socketpools:
+                    del _global_socketpools[radio_key]
+
+                if radio_key in _global_ssl_contexts:
+                    del _global_ssl_contexts[radio_key]
+
+            if pool in _global_connection_managers:
+                del _global_connection_managers[pool]
 
 
 def get_connection_manager(socket_pool: SocketpoolModuleType) -> ConnectionManager:
