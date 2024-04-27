@@ -35,7 +35,7 @@ WIZNET5K_SSL_SUPPORT_VERSION = (9, 1)
 
 
 if not sys.implementation.name == "circuitpython":
-    from typing import Optional, Tuple
+    from typing import List, Optional, Tuple
 
     from circuitpython_typing.socket import (
         CircuitPythonSocketType,
@@ -71,8 +71,7 @@ class _FakeSSLContext:
     def __init__(self, iface: InterfaceType) -> None:
         self._iface = iface
 
-    # pylint: disable=unused-argument
-    def wrap_socket(
+    def wrap_socket(  # pylint: disable=unused-argument
         self, socket: CircuitPythonSocketType, server_hostname: Optional[str] = None
     ) -> _FakeSSLSocket:
         """Return the same socket"""
@@ -184,54 +183,75 @@ class ConnectionManager:
     ) -> None:
         self._socket_pool = socket_pool
         # Hang onto open sockets so that we can reuse them.
-        self._available_socket = {}
-        self._open_sockets = {}
+        self._available_sockets = set()
+        self._managed_socket_by_key = {}
+        self._managed_socket_by_socket = {}
 
     def _free_sockets(self, force: bool = False) -> None:
-        available_sockets = []
-        for socket, free in self._available_socket.items():
-            if free or force:
-                available_sockets.append(socket)
-
+        # cloning lists since items are being removed
+        available_sockets = list(self._available_sockets)
         for socket in available_sockets:
             self.close_socket(socket)
+        if force:
+            open_sockets = list(self._managed_socket_by_key.values())
+            for socket in open_sockets:
+                self.close_socket(socket)
 
-    def _get_key_for_socket(self, socket):
+    def _get_connected_socket(  # pylint: disable=too-many-arguments
+        self,
+        addr_info: List[Tuple[int, int, int, str, Tuple[str, int]]],
+        host: str,
+        port: int,
+        timeout: float,
+        is_ssl: bool,
+        ssl_context: Optional[SSLContextType] = None,
+    ):
         try:
-            return next(
-                key for key, value in self._open_sockets.items() if value == socket
-            )
-        except StopIteration:
-            return None
+            socket = self._socket_pool.socket(addr_info[0], addr_info[1])
+        except (OSError, RuntimeError) as exc:
+            return exc
+
+        if is_ssl:
+            socket = ssl_context.wrap_socket(socket, server_hostname=host)
+            connect_host = host
+        else:
+            connect_host = addr_info[-1][0]
+        socket.settimeout(timeout)  # socket read timeout
+
+        try:
+            socket.connect((connect_host, port))
+        except (MemoryError, OSError) as exc:
+            socket.close()
+            return exc
+
+        return socket
 
     @property
-    def open_sockets(self) -> int:
-        """Get the count of open sockets"""
-        return len(self._open_sockets)
-
-    @property
-    def freeable_open_sockets(self) -> int:
+    def available_socket_count(self) -> int:
         """Get the count of freeable open sockets"""
-        return len(
-            [socket for socket, free in self._available_socket.items() if free is True]
-        )
+        return len(self._available_sockets)
+
+    @property
+    def managed_socket_count(self) -> int:
+        """Get the count of open sockets"""
+        return len(self._managed_socket_by_key)
 
     def close_socket(self, socket: SocketType) -> None:
         """Close a previously opened socket."""
-        if socket not in self._open_sockets.values():
+        if socket not in self._managed_socket_by_key.values():
             raise RuntimeError("Socket not managed")
-        key = self._get_key_for_socket(socket)
         socket.close()
-        del self._available_socket[socket]
-        del self._open_sockets[key]
+        key = self._managed_socket_by_socket.pop(socket)
+        del self._managed_socket_by_key[key]
+        if socket in self._available_sockets:
+            self._available_sockets.remove(socket)
 
     def free_socket(self, socket: SocketType) -> None:
         """Mark a previously opened socket as available so it can be reused if needed."""
-        if socket not in self._open_sockets.values():
+        if socket not in self._managed_socket_by_key.values():
             raise RuntimeError("Socket not managed")
-        self._available_socket[socket] = True
+        self._available_sockets.add(socket)
 
-    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     def get_socket(
         self,
         host: str,
@@ -247,10 +267,10 @@ class ConnectionManager:
         if session_id:
             session_id = str(session_id)
         key = (host, port, proto, session_id)
-        if key in self._open_sockets:
-            socket = self._open_sockets[key]
-            if self._available_socket[socket]:
-                self._available_socket[socket] = False
+        if key in self._managed_socket_by_key:
+            socket = self._managed_socket_by_key[key]
+            if socket in self._available_sockets:
+                self._available_sockets.remove(socket)
                 return socket
 
             raise RuntimeError(f"Socket already connected to {proto}//{host}:{port}")
@@ -266,54 +286,22 @@ class ConnectionManager:
             host, port, 0, self._socket_pool.SOCK_STREAM
         )[0]
 
-        try_count = 0
-        socket = None
-        last_exc = None
-        while try_count < 2 and socket is None:
-            try_count += 1
-            if try_count > 1:
-                if any(
-                    socket
-                    for socket, free in self._available_socket.items()
-                    if free is True
-                ):
-                    self._free_sockets()
-                else:
-                    break
+        result = self._get_connected_socket(
+            addr_info, host, port, timeout, is_ssl, ssl_context
+        )
+        if isinstance(result, Exception):
+            # Got an error, if there are any available sockets, free them and try again
+            if self.available_socket_count:
+                self._free_sockets()
+                result = self._get_connected_socket(
+                    addr_info, host, port, timeout, is_ssl, ssl_context
+                )
+        if isinstance(result, Exception):
+            raise RuntimeError(f"Error connecting socket: {result}") from result
 
-            try:
-                socket = self._socket_pool.socket(addr_info[0], addr_info[1])
-            except OSError as exc:
-                last_exc = exc
-                continue
-            except RuntimeError as exc:
-                last_exc = exc
-                continue
-
-            if is_ssl:
-                socket = ssl_context.wrap_socket(socket, server_hostname=host)
-                connect_host = host
-            else:
-                connect_host = addr_info[-1][0]
-            socket.settimeout(timeout)  # socket read timeout
-
-            try:
-                socket.connect((connect_host, port))
-            except MemoryError as exc:
-                last_exc = exc
-                socket.close()
-                socket = None
-            except OSError as exc:
-                last_exc = exc
-                socket.close()
-                socket = None
-
-        if socket is None:
-            raise RuntimeError(f"Error connecting socket: {last_exc}") from last_exc
-
-        self._available_socket[socket] = False
-        self._open_sockets[key] = socket
-        return socket
+        self._managed_socket_by_key[key] = result
+        self._managed_socket_by_socket[result] = key
+        return result
 
 
 # global helpers
