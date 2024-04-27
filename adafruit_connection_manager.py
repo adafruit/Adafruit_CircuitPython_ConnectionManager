@@ -184,8 +184,8 @@ class ConnectionManager:
         self._socket_pool = socket_pool
         # Hang onto open sockets so that we can reuse them.
         self._available_sockets = set()
+        self._key_by_managed_socket = {}
         self._managed_socket_by_key = {}
-        self._managed_socket_by_socket = {}
 
     def _free_sockets(self, force: bool = False) -> None:
         # cloning lists since items are being removed
@@ -241,7 +241,7 @@ class ConnectionManager:
         if socket not in self._managed_socket_by_key.values():
             raise RuntimeError("Socket not managed")
         socket.close()
-        key = self._managed_socket_by_socket.pop(socket)
+        key = self._key_by_managed_socket.pop(socket)
         del self._managed_socket_by_key[key]
         if socket in self._available_sockets:
             self._available_sockets.remove(socket)
@@ -299,8 +299,8 @@ class ConnectionManager:
         if isinstance(result, Exception):
             raise RuntimeError(f"Error connecting socket: {result}") from result
 
+        self._key_by_managed_socket[result] = key
         self._managed_socket_by_key[key] = result
-        self._managed_socket_by_socket[result] = key
         return result
 
 
