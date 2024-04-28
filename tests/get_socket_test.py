@@ -213,7 +213,7 @@ def test_get_socket_runtime_error_ties_again_only_once():
     # try to get a socket that returns a RuntimeError twice
     with pytest.raises(RuntimeError) as context:
         connection_manager.get_socket(mocket.MOCK_HOST_2, 80, "http:")
-    assert "Error connecting socket: error 2" in str(context)
+    assert "Error connecting socket: error 2, first error: error 1" in str(context)
     free_sockets_mock.assert_called_once()
 
 
@@ -242,7 +242,7 @@ def test_fake_ssl_context_connect_error(  # pylint: disable=unused-argument
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
     mock_pool.socket.return_value = mock_socket_1
-    mock_socket_1.connect.side_effect = RuntimeError("RuntimeError ")
+    mock_socket_1.connect.side_effect = RuntimeError("RuntimeError")
 
     radio = mocket.MockRadio.ESP_SPIcontrol()
     ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
@@ -252,4 +252,4 @@ def test_fake_ssl_context_connect_error(  # pylint: disable=unused-argument
         connection_manager.get_socket(
             mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
         )
-    assert "Error connecting socket: 12" in str(context)
+    assert "Error connecting socket: [Errno 12] RuntimeError" in str(context)

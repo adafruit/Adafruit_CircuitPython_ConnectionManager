@@ -21,13 +21,13 @@ def test_close_socket():
     socket = connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
     key = (mocket.MOCK_HOST_1, 80, "http:", None)
     assert socket == mock_socket_1
-    assert socket in connection_manager._available_socket
-    assert key in connection_manager._open_sockets
+    assert socket not in connection_manager._available_sockets
+    assert key in connection_manager._managed_socket_by_key
 
     # validate socket is no longer tracked
     connection_manager.close_socket(socket)
-    assert socket not in connection_manager._available_socket
-    assert key not in connection_manager._open_sockets
+    assert socket not in connection_manager._available_sockets
+    assert key not in connection_manager._managed_socket_by_key
 
 
 def test_close_socket_not_managed():
