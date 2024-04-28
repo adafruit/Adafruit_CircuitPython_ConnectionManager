@@ -64,7 +64,7 @@ class _FakeSSLSocket:
         try:
             return self._socket.connect(address, self._mode)
         except RuntimeError as error:
-            raise OSError(errno.ENOMEM) from error
+            raise OSError(errno.ENOMEM, str(error)) from error
 
 
 class _FakeSSLContext:
@@ -286,18 +286,23 @@ class ConnectionManager:
             host, port, 0, self._socket_pool.SOCK_STREAM
         )[0]
 
+        first_exception = None
         result = self._get_connected_socket(
             addr_info, host, port, timeout, is_ssl, ssl_context
         )
         if isinstance(result, Exception):
             # Got an error, if there are any available sockets, free them and try again
             if self.available_socket_count:
+                first_exception = result
                 self._free_sockets()
                 result = self._get_connected_socket(
                     addr_info, host, port, timeout, is_ssl, ssl_context
                 )
         if isinstance(result, Exception):
-            raise RuntimeError(f"Error connecting socket: {result}") from result
+            last_result = f", first error: {first_exception}" if first_exception else ""
+            raise RuntimeError(
+                f"Error connecting socket: {result}{last_result}"
+            ) from result
 
         self._key_by_managed_socket[result] = key
         self._managed_socket_by_key[key] = result
