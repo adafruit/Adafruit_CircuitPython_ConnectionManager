@@ -27,8 +27,8 @@ requests = adafruit_requests.Session(pool, ssl_context)
 connection_manager = adafruit_connection_manager.get_connection_manager(pool)
 print("-" * 40)
 print("Nothing yet opened")
-print(f"Open Sockets: {connection_manager.managed_socket_count}")
-print(f"Freeable Open Sockets: {connection_manager.available_socket_count}")
+print(f"Managed Sockets: {connection_manager.managed_socket_count}")
+print(f"Available Managed Sockets: {connection_manager.available_socket_count}")
 
 # make request
 print("-" * 40)
@@ -38,18 +38,18 @@ with requests.get(TEXT_URL) as response:
     print(f"Text Response {response_text}")
 
 print("-" * 40)
-print("1 request, opened and freed")
-print(f"Open Sockets: {connection_manager.managed_socket_count}")
-print(f"Freeable Open Sockets: {connection_manager.available_socket_count}")
+print("1 request, opened and closed")
+print(f"Managed Sockets: {connection_manager.managed_socket_count}")
+print(f"Available Managed Sockets: {connection_manager.available_socket_count}")
 
 print("-" * 40)
 print(f"Fetching from {TEXT_URL} not in a context handler")
 response = requests.get(TEXT_URL)
 
 print("-" * 40)
-print("1 request, opened but not freed")
-print(f"Open Sockets: {connection_manager.managed_socket_count}")
-print(f"Freeable Open Sockets: {connection_manager.available_socket_count}")
+print("1 request, opened but not closed")
+print(f"Managed Sockets: {connection_manager.managed_socket_count}")
+print(f"Available Managed Sockets: {connection_manager.available_socket_count}")
 
 print("-" * 40)
 print("Closing everything in the pool")
@@ -57,5 +57,5 @@ adafruit_connection_manager.connection_manager_close_all(pool)
 
 print("-" * 40)
 print("Everything closed")
-print(f"Open Sockets: {connection_manager.managed_socket_count}")
-print(f"Freeable Open Sockets: {connection_manager.available_socket_count}")
+print(f"Managed Sockets: {connection_manager.managed_socket_count}")
+print(f"Available Managed Sockets: {connection_manager.available_socket_count}")

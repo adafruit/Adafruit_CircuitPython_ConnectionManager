@@ -99,12 +99,13 @@ def create_fake_ssl_context(
 
 
 _global_connection_managers = {}
+_global_key_by_socketpool = {}
 _global_socketpools = {}
 _global_ssl_contexts = {}
 
 
 def get_radio_socketpool(radio):
-    """Helper to get a socket pool for common boards
+    """Helper to get a socket pool for common boards.
 
     Currently supported:
 
@@ -151,6 +152,7 @@ def get_radio_socketpool(radio):
         else:
             raise AttributeError(f"Unsupported radio class: {class_name}")
 
+        _global_key_by_socketpool[pool] = class_name
         _global_socketpools[class_name] = pool
         _global_ssl_contexts[class_name] = ssl_context
 
@@ -158,7 +160,7 @@ def get_radio_socketpool(radio):
 
 
 def get_radio_ssl_context(radio):
-    """Helper to get ssl_contexts for common boards
+    """Helper to get ssl_contexts for common boards.
 
     Currently supported:
 
@@ -175,7 +177,7 @@ def get_radio_ssl_context(radio):
 
 
 class ConnectionManager:
-    """Connection manager for sharing open sockets (aka connections)."""
+    """A library for managing sockets accross libraries."""
 
     def __init__(
         self,
@@ -228,16 +230,20 @@ class ConnectionManager:
 
     @property
     def available_socket_count(self) -> int:
-        """Get the count of freeable open sockets"""
+        """Get the count of available (freed) managed sockets."""
         return len(self._available_sockets)
 
     @property
     def managed_socket_count(self) -> int:
-        """Get the count of open sockets"""
+        """Get the count of managed sockets."""
         return len(self._managed_socket_by_key)
 
     def close_socket(self, socket: SocketType) -> None:
-        """Close a previously opened socket."""
+        """
+        Close a previously managed and connected socket.
+
+        - **socket_pool** *(SocketType)* – The socket you want to close
+        """
         if socket not in self._managed_socket_by_key.values():
             raise RuntimeError("Socket not managed")
         socket.close()
@@ -247,7 +253,7 @@ class ConnectionManager:
             self._available_sockets.remove(socket)
 
     def free_socket(self, socket: SocketType) -> None:
-        """Mark a previously opened socket as available so it can be reused if needed."""
+        """Mark a managed socket as available so it can be reused."""
         if socket not in self._managed_socket_by_key.values():
             raise RuntimeError("Socket not managed")
         self._available_sockets.add(socket)
@@ -263,7 +269,20 @@ class ConnectionManager:
         is_ssl: bool = False,
         ssl_context: Optional[SSLContextType] = None,
     ) -> CircuitPythonSocketType:
-        """Get a new socket and connect"""
+        """
+        Get a new socket and connect.
+
+        - **host** *(str)* – The host you are want to connect to: "www.adaftuit.com"
+        - **port** *(int)* – The port you want to connect to: 80
+        - **proto** *(str)* – The protocal you want to use: "http:"
+        - **session_id** *(Optional[str])* – A unique Session ID, when wanting to have multiple open
+          connections to the same host
+        - **timeout** *(float)* – Time timeout used for connecting
+        - **is_ssl** *(bool)* – If the connection is to be over SSL (auto set when proto is
+          "https:")
+        - **ssl_context** *(Optional[SSLContextType])* – The SSL context to use when making SSL
+          requests
+        """
         if session_id:
             session_id = str(session_id)
         key = (host, port, proto, session_id)
@@ -315,7 +334,14 @@ class ConnectionManager:
 def connection_manager_close_all(
     socket_pool: Optional[SocketpoolModuleType] = None, release_references: bool = False
 ) -> None:
-    """Close all open sockets for pool"""
+    """
+    Close all open sockets for pool, optionally release references.
+
+    - **socket_pool** *(Optional[SocketpoolModuleType])* – A specifc SocketPool you want to close
+      sockets for, leave blank for all SocketPools
+    - **release_references** *(bool)* – Set to True if you want to also clear stored references to
+      the SocketPool and SSL contexts
+    """
     if socket_pool:
         socket_pools = [socket_pool]
     else:
@@ -328,26 +354,24 @@ def connection_manager_close_all(
 
         connection_manager._free_sockets(force=True)  # pylint: disable=protected-access
 
-        if release_references:
-            radio_key = None
-            for radio_check, pool_check in _global_socketpools.items():
-                if pool == pool_check:
-                    radio_key = radio_check
-                    break
+        if not release_references:
+            continue
 
-            if radio_key:
-                if radio_key in _global_socketpools:
-                    del _global_socketpools[radio_key]
+        key = _global_key_by_socketpool.pop(pool)
+        if key:
+            _global_socketpools.pop(key, None)
+            _global_ssl_contexts.pop(key, None)
 
-                if radio_key in _global_ssl_contexts:
-                    del _global_ssl_contexts[radio_key]
-
-            if pool in _global_connection_managers:
-                del _global_connection_managers[pool]
+        _global_connection_managers.pop(pool, None)
 
 
 def get_connection_manager(socket_pool: SocketpoolModuleType) -> ConnectionManager:
-    """Get the ConnectionManager singleton for the given pool"""
+    """
+    Get the ConnectionManager singleton for the given pool.
+
+    - **socket_pool** *(Optional[SocketpoolModuleType])* – The SocketPool you want the
+      ConnectionManager for
+    """
     if socket_pool not in _global_connection_managers:
         _global_connection_managers[socket_pool] = ConnectionManager(socket_pool)
     return _global_connection_managers[socket_pool]
