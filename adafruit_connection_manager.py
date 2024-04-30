@@ -58,10 +58,10 @@ class _FakeSSLSocket:
         self.recv = socket.recv
         self.close = socket.close
         self.recv_into = socket.recv_into
-        if hasattr(socket, "_interface"):
-            self._interface = socket._interface
-        if hasattr(socket, "_socket_pool"):
-            self._socket_pool = socket._socket_pool
+        # For sockets that come from software socketpools (like the esp32api), they track
+        # the interface and socket pool. We need to make sure the clones do as well
+        self._interface = getattr(socket, "_interface", None)
+        self._socket_pool = getattr(socket, "_socket_pool", None)
 
     def connect(self, address: Tuple[str, int]) -> None:
         """Connect wrapper to add non-standard mode parameter"""
