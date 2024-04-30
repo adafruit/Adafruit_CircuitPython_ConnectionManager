@@ -58,6 +58,10 @@ class _FakeSSLSocket:
         self.recv = socket.recv
         self.close = socket.close
         self.recv_into = socket.recv_into
+        # For sockets that come from software socketpools (like the esp32api), they track
+        # the interface and socket pool. We need to make sure the clones do as well
+        self._interface = getattr(socket, "_interface", None)
+        self._socket_pool = getattr(socket, "_socket_pool", None)
 
     def connect(self, address: Tuple[str, int]) -> None:
         """Connect wrapper to add non-standard mode parameter"""
@@ -94,7 +98,10 @@ def create_fake_ssl_context(
      * `Adafruit AirLift FeatherWing – ESP32 WiFi Co-Processor
        <https://www.adafruit.com/product/4264>`_
     """
-    socket_pool.set_interface(iface)
+    if hasattr(socket_pool, "set_interface"):
+        # this is to manually support legacy hardware like the fona
+        socket_pool.set_interface(iface)
+
     return _FakeSSLContext(iface)
 
 
@@ -102,6 +109,13 @@ _global_connection_managers = {}
 _global_key_by_socketpool = {}
 _global_socketpools = {}
 _global_ssl_contexts = {}
+
+
+def _get_radio_hash_key(radio):
+    try:
+        return hash(radio)
+    except TypeError:
+        return radio.__class__.__name__
 
 
 def get_radio_socketpool(radio):
@@ -113,8 +127,9 @@ def get_radio_socketpool(radio):
      * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
      * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
     """
-    class_name = radio.__class__.__name__
-    if class_name not in _global_socketpools:
+    key = _get_radio_hash_key(radio)
+    if key not in _global_socketpools:
+        class_name = radio.__class__.__name__
         if class_name == "Radio":
             import ssl  # pylint: disable=import-outside-toplevel
 
@@ -124,12 +139,15 @@ def get_radio_socketpool(radio):
             ssl_context = ssl.create_default_context()
 
         elif class_name == "ESP_SPIcontrol":
-            import adafruit_esp32spi.adafruit_esp32spi_socket as pool  # pylint: disable=import-outside-toplevel
+            import adafruit_esp32spi.adafruit_esp32spi_socketpool as socketpool  # pylint: disable=import-outside-toplevel
 
+            pool = socketpool.SocketPool(radio)
             ssl_context = create_fake_ssl_context(pool, radio)
 
         elif class_name == "WIZNET5K":
-            import adafruit_wiznet5k.adafruit_wiznet5k_socket as pool  # pylint: disable=import-outside-toplevel
+            import adafruit_wiznet5k.adafruit_wiznet5k_socketpool as socketpool  # pylint: disable=import-outside-toplevel
+
+            pool = socketpool.SocketPool(radio)
 
             # Note: At this time, SSL/TLS connections are not supported by older
             # versions of the Wiznet5k library or on boards withouut the ssl module
@@ -141,7 +159,6 @@ def get_radio_socketpool(radio):
                     import ssl  # pylint: disable=import-outside-toplevel
 
                     ssl_context = ssl.create_default_context()
-                    pool.set_interface(radio)
                 except ImportError:
                     # if SSL not on board, default to fake_ssl_context
                     pass
@@ -152,11 +169,11 @@ def get_radio_socketpool(radio):
         else:
             raise AttributeError(f"Unsupported radio class: {class_name}")
 
-        _global_key_by_socketpool[pool] = class_name
-        _global_socketpools[class_name] = pool
-        _global_ssl_contexts[class_name] = ssl_context
+        _global_key_by_socketpool[pool] = key
+        _global_socketpools[key] = pool
+        _global_ssl_contexts[key] = ssl_context
 
-    return _global_socketpools[class_name]
+    return _global_socketpools[key]
 
 
 def get_radio_ssl_context(radio):
@@ -168,9 +185,8 @@ def get_radio_ssl_context(radio):
      * Using the ESP32 WiFi Co-Processor (like the Adafruit AirLift)
      * Using a WIZ5500 (Like the Adafruit Ethernet FeatherWing)
     """
-    class_name = radio.__class__.__name__
     get_radio_socketpool(radio)
-    return _global_ssl_contexts[class_name]
+    return _global_ssl_contexts[_get_radio_hash_key(radio)]
 
 
 # main class

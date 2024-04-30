@@ -13,6 +13,18 @@ import pytest
 import adafruit_connection_manager
 
 
+def test__get_radio_hash_key():
+    radio = mocket.MockRadio.Radio()
+    assert adafruit_connection_manager._get_radio_hash_key(radio) == hash(radio)
+
+
+def test__get_radio_hash_key_not_hashable():
+    radio = mocket.MockRadio.Radio()
+
+    with mock.patch("builtins.hash", side_effect=TypeError()):
+        assert adafruit_connection_manager._get_radio_hash_key(radio) == "Radio"
+
+
 def test_get_radio_socketpool_wifi(  # pylint: disable=unused-argument
     circuitpython_socketpool_module,
 ):
@@ -23,21 +35,21 @@ def test_get_radio_socketpool_wifi(  # pylint: disable=unused-argument
 
 
 def test_get_radio_socketpool_esp32spi(  # pylint: disable=unused-argument
-    adafruit_esp32spi_socket_module,
+    adafruit_esp32spi_socketpool_module,
 ):
     radio = mocket.MockRadio.ESP_SPIcontrol()
     socket_pool = adafruit_connection_manager.get_radio_socketpool(radio)
-    assert socket_pool.__name__ == "adafruit_esp32spi_socket"
+    assert socket_pool.__name__ == "adafruit_esp32spi_socketpool"
     assert socket_pool in adafruit_connection_manager._global_socketpools.values()
 
 
 def test_get_radio_socketpool_wiznet5k(  # pylint: disable=unused-argument
-    adafruit_wiznet5k_socket_module,
+    adafruit_wiznet5k_socketpool_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
     with mock.patch("sys.implementation", return_value=[9, 0, 0]):
         socket_pool = adafruit_connection_manager.get_radio_socketpool(radio)
-    assert socket_pool.__name__ == "adafruit_wiznet5k_socket"
+    assert socket_pool.__name__ == "adafruit_wiznet5k_socketpool"
     assert socket_pool in adafruit_connection_manager._global_socketpools.values()
 
 
@@ -68,7 +80,7 @@ def test_get_radio_ssl_context_wifi(  # pylint: disable=unused-argument
 
 
 def test_get_radio_ssl_context_esp32spi(  # pylint: disable=unused-argument
-    adafruit_esp32spi_socket_module,
+    adafruit_esp32spi_socketpool_module,
 ):
     radio = mocket.MockRadio.ESP_SPIcontrol()
     ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
@@ -77,7 +89,7 @@ def test_get_radio_ssl_context_esp32spi(  # pylint: disable=unused-argument
 
 
 def test_get_radio_ssl_context_wiznet5k(  # pylint: disable=unused-argument
-    adafruit_wiznet5k_socket_module,
+    adafruit_wiznet5k_socketpool_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
     with mock.patch("sys.implementation", return_value=[9, 0, 0]):

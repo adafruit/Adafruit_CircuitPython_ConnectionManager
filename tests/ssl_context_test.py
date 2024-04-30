@@ -15,7 +15,7 @@ from adafruit_connection_manager import WIZNET5K_SSL_SUPPORT_VERSION
 
 
 def test_connect_esp32spi_https(  # pylint: disable=unused-argument
-    adafruit_esp32spi_socket_module,
+    adafruit_esp32spi_socketpool_module,
 ):
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
@@ -48,7 +48,7 @@ def test_connect_wifi_https(  # pylint: disable=unused-argument
 
 
 def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argument
-    adafruit_wiznet5k_socket_module,
+    adafruit_wiznet5k_socketpool_module,
 ):
     mock_pool = mocket.MocketPool()
     radio = mocket.MockRadio.WIZNET5K()
@@ -66,7 +66,7 @@ def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argumen
 
 
 def test_connect_wiznet5k_https_supported(  # pylint: disable=unused-argument
-    adafruit_wiznet5k_with_ssl_socket_module,
+    adafruit_wiznet5k_with_ssl_socketpool_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
     with mock.patch("sys.implementation", (None, WIZNET5K_SSL_SUPPORT_VERSION)):

@@ -88,7 +88,7 @@ def test_connection_manager_close_all_untracked():
 
 
 def test_connection_manager_close_all_single_release_references_false(  # pylint: disable=unused-argument
-    circuitpython_socketpool_module, adafruit_esp32spi_socket_module
+    circuitpython_socketpool_module, adafruit_esp32spi_socketpool_module
 ):
     radio_wifi = mocket.MockRadio.Radio()
     radio_esp = mocket.MockRadio.ESP_SPIcontrol()
@@ -131,7 +131,7 @@ def test_connection_manager_close_all_single_release_references_false(  # pylint
 
 
 def test_connection_manager_close_all_single_release_references_true(  # pylint: disable=unused-argument
-    circuitpython_socketpool_module, adafruit_esp32spi_socket_module
+    circuitpython_socketpool_module, adafruit_esp32spi_socketpool_module
 ):
     radio_wifi = mocket.MockRadio.Radio()
     radio_esp = mocket.MockRadio.ESP_SPIcontrol()
