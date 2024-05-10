@@ -18,9 +18,9 @@ def test_get_https_no_ssl():
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # verify not sending in a SSL context for a HTTPS call errors
-    with pytest.raises(AttributeError) as context:
+    with pytest.raises(ValueError) as context:
         connection_manager.get_socket(mocket.MOCK_HOST_1, 443, "https:")
-    assert "ssl_context must be set" in str(context)
+    assert "ssl_context must be provided if using ssl" in str(context)
 
 
 def test_connect_https():

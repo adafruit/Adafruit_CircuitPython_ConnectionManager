@@ -74,7 +74,7 @@ class _FakeSSLContext:
         if hasattr(self._iface, "TLS_MODE"):
             return _FakeSSLSocket(socket, self._iface.TLS_MODE)
 
-        raise AttributeError("This radio does not support TLS/HTTPS")
+        raise ValueError("This radio does not support TLS/HTTPS")
 
 
 def create_fake_ssl_context(
@@ -159,7 +159,7 @@ def get_radio_socketpool(radio):
                 ssl_context = create_fake_ssl_context(pool, radio)
 
         else:
-            raise AttributeError(f"Unsupported radio class: {class_name}")
+            raise ValueError(f"Unsupported radio class: {class_name}")
 
         _global_key_by_socketpool[pool] = key
         _global_socketpools[key] = pool
