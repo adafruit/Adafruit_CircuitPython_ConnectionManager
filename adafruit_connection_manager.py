@@ -204,6 +204,11 @@ class ConnectionManager:
             for socket in open_sockets:
                 self.close_socket(socket)
 
+    def _register_connected_socket(self, key, socket):
+        """Register a socket as managed."""
+        self._key_by_managed_socket[socket] = key
+        self._managed_socket_by_key[key] = socket
+
     def _get_connected_socket(  # pylint: disable=too-many-arguments
         self,
         addr_info: List[Tuple[int, int, int, str, Tuple[str, int]]],
@@ -264,10 +269,6 @@ class ConnectionManager:
             raise RuntimeError("Socket not managed")
         self._available_sockets.add(socket)
 
-    def _register_connected_socket(self, key, socket):
-        self._key_by_managed_socket[socket] = key
-        self._managed_socket_by_key[key] = socket
-
     # pylint: disable=too-many-arguments
     def get_socket(
         self,
@@ -290,7 +291,7 @@ class ConnectionManager:
           used for multiple simultaneous connections to the same host
         :param float timeout: how long to wait to connect
         :param bool is_ssl: ``True`` If the connection is to be over SSL;
-          automatically set when ``proto`` is ``"https:"`
+          automatically set when ``proto`` is ``"https:"``
         :param Optional[SSLContextType]: SSL context to use when making SSL requests
         """
         if session_id:
@@ -344,9 +345,9 @@ def connection_manager_close_all(
     Close all open sockets for pool, optionally release references.
 
     :param Optional[SocketpoolModuleType] socket_pool:
-      a specific `SocketPool` whose sockets you want to close; `None`` means all `SocketPool`s
-    :param bool release_references: ``True`` if you want to also clear stored references to
-      the SocketPool and SSL contexts
+      a specific socket pool whose sockets you want to close; ``None`` means all socket pools
+    :param bool release_references: ``True`` if you also want the `ConnectionManager` to forget
+      all the socket pools and SSL contexts it knows about
     """
     if socket_pool:
         socket_pools = [socket_pool]

@@ -91,7 +91,7 @@ def test_get_socket_not_flagged_free():
     # get a socket for the same host, should be a different one
     with pytest.raises(RuntimeError) as context:
         socket = connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
-    assert "Socket already connected" in str(context)
+    assert "An existing socket is already connected" in str(context)
 
 
 def test_get_socket_os_error():
@@ -105,9 +105,8 @@ def test_get_socket_os_error():
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to get a socket that returns a OSError
-    with pytest.raises(RuntimeError) as context:
+    with pytest.raises(OSError):
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
-    assert "Error connecting socket: OSError" in str(context)
 
 
 def test_get_socket_runtime_error():
@@ -121,9 +120,8 @@ def test_get_socket_runtime_error():
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to get a socket that returns a RuntimeError
-    with pytest.raises(RuntimeError) as context:
+    with pytest.raises(RuntimeError):
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
-    assert "Error connecting socket: RuntimeError" in str(context)
 
 
 def test_get_socket_connect_memory_error():
@@ -139,9 +137,8 @@ def test_get_socket_connect_memory_error():
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to connect a socket that returns a MemoryError
-    with pytest.raises(RuntimeError) as context:
+    with pytest.raises(MemoryError):
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
-    assert "Error connecting socket: MemoryError" in str(context)
 
 
 def test_get_socket_connect_os_error():
@@ -157,9 +154,8 @@ def test_get_socket_connect_os_error():
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to connect a socket that returns a OSError
-    with pytest.raises(RuntimeError) as context:
+    with pytest.raises(OSError):
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
-    assert "Error connecting socket: OSError" in str(context)
 
 
 def test_get_socket_runtime_error_ties_again_at_least_one_free():
@@ -211,9 +207,8 @@ def test_get_socket_runtime_error_ties_again_only_once():
     free_sockets_mock.assert_not_called()
 
     # try to get a socket that returns a RuntimeError twice
-    with pytest.raises(RuntimeError) as context:
+    with pytest.raises(RuntimeError):
         connection_manager.get_socket(mocket.MOCK_HOST_2, 80, "http:")
-    assert "Error connecting socket: error 2, first error: error 1" in str(context)
     free_sockets_mock.assert_called_once()
 
 
@@ -248,8 +243,7 @@ def test_fake_ssl_context_connect_error(  # pylint: disable=unused-argument
     ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
-    with pytest.raises(RuntimeError) as context:
+    with pytest.raises(OSError):
         connection_manager.get_socket(
             mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
         )
-    assert "Error connecting socket: [Errno 12] RuntimeError" in str(context)
