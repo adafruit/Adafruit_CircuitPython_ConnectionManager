@@ -55,7 +55,7 @@ def test_get_radio_socketpool_wiznet5k(  # pylint: disable=unused-argument
 
 def test_get_radio_socketpool_unsupported():
     radio = mocket.MockRadio.Unsupported()
-    with pytest.raises(AttributeError) as context:
+    with pytest.raises(ValueError) as context:
         adafruit_connection_manager.get_radio_socketpool(radio)
     assert "Unsupported radio class" in str(context)
 
@@ -100,7 +100,7 @@ def test_get_radio_ssl_context_wiznet5k(  # pylint: disable=unused-argument
 
 def test_get_radio_ssl_context_unsupported():
     radio = mocket.MockRadio.Unsupported()
-    with pytest.raises(AttributeError) as context:
+    with pytest.raises(ValueError) as context:
         adafruit_connection_manager.get_radio_ssl_context(radio)
     assert "Unsupported radio class" in str(context)
 

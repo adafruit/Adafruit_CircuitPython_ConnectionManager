@@ -58,7 +58,7 @@ def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argumen
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # verify a HTTPS call for a board without built in WiFi and SSL support errors
-    with pytest.raises(AttributeError) as context:
+    with pytest.raises(ValueError) as context:
         connection_manager.get_socket(
             mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
         )
