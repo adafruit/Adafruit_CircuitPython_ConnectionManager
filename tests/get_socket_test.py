@@ -98,30 +98,32 @@ def test_get_socket_os_error():
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
     mock_pool.socket.side_effect = [
-        OSError("OSError"),
+        OSError("OSError 1"),
         mock_socket_1,
     ]
 
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to get a socket that returns a OSError
-    with pytest.raises(OSError):
+    with pytest.raises(OSError) as context:
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
+    assert "OSError 1" in str(context)
 
 
 def test_get_socket_runtime_error():
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
     mock_pool.socket.side_effect = [
-        RuntimeError("RuntimeError"),
+        RuntimeError("RuntimeError 1"),
         mock_socket_1,
     ]
 
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to get a socket that returns a RuntimeError
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as context:
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
+    assert "RuntimeError 1" in str(context)
 
 
 def test_get_socket_connect_memory_error():
@@ -132,13 +134,14 @@ def test_get_socket_connect_memory_error():
         mock_socket_1,
         mock_socket_2,
     ]
-    mock_socket_1.connect.side_effect = MemoryError("MemoryError")
+    mock_socket_1.connect.side_effect = MemoryError("MemoryError 1")
 
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to connect a socket that returns a MemoryError
-    with pytest.raises(MemoryError):
+    with pytest.raises(MemoryError) as context:
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
+    assert "MemoryError 1" in str(context)
 
 
 def test_get_socket_connect_os_error():
@@ -149,13 +152,14 @@ def test_get_socket_connect_os_error():
         mock_socket_1,
         mock_socket_2,
     ]
-    mock_socket_1.connect.side_effect = OSError("OSError")
+    mock_socket_1.connect.side_effect = OSError("OSError 1")
 
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # try to connect a socket that returns a OSError
-    with pytest.raises(OSError):
+    with pytest.raises(OSError) as context:
         connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:")
+    assert "OSError 1" in str(context)
 
 
 def test_get_socket_runtime_error_ties_again_at_least_one_free():
@@ -190,9 +194,9 @@ def test_get_socket_runtime_error_ties_again_only_once():
     mock_socket_2 = mocket.Mocket()
     mock_pool.socket.side_effect = [
         mock_socket_1,
-        RuntimeError("error 1"),
-        RuntimeError("error 2"),
-        RuntimeError("error 3"),
+        RuntimeError("RuntimeError 1"),
+        RuntimeError("RuntimeError 2"),
+        RuntimeError("RuntimeError 3"),
         mock_socket_2,
     ]
 
@@ -207,8 +211,9 @@ def test_get_socket_runtime_error_ties_again_only_once():
     free_sockets_mock.assert_not_called()
 
     # try to get a socket that returns a RuntimeError twice
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as context:
         connection_manager.get_socket(mocket.MOCK_HOST_2, 80, "http:")
+    assert "RuntimeError 2" in str(context)
     free_sockets_mock.assert_called_once()
 
 
@@ -237,13 +242,15 @@ def test_fake_ssl_context_connect_error(  # pylint: disable=unused-argument
     mock_pool = mocket.MocketPool()
     mock_socket_1 = mocket.Mocket()
     mock_pool.socket.return_value = mock_socket_1
-    mock_socket_1.connect.side_effect = RuntimeError("RuntimeError")
+    mock_socket_1.connect.side_effect = RuntimeError("RuntimeError 1")
 
     radio = mocket.MockRadio.ESP_SPIcontrol()
     ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
-    with pytest.raises(OSError):
+    with pytest.raises(OSError) as context:
         connection_manager.get_socket(
             mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
         )
+    assert "12" in str(context)
+    assert "RuntimeError 1" in str(context)
