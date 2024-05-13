@@ -53,6 +53,13 @@ def test_get_radio_socketpool_wiznet5k(  # pylint: disable=unused-argument
     assert socket_pool in adafruit_connection_manager._global_socketpools.values()
 
 
+def test_get_radio_socketpool_cpython():
+    radio = adafruit_connection_manager.CPythonNetwork()
+    socket_pool = adafruit_connection_manager.get_radio_socketpool(radio)
+    assert socket_pool.__name__ == "socket"
+    assert socket_pool in adafruit_connection_manager._global_socketpools.values()
+
+
 def test_get_radio_socketpool_unsupported():
     radio = mocket.MockRadio.Unsupported()
     with pytest.raises(ValueError) as context:
@@ -95,6 +102,13 @@ def test_get_radio_ssl_context_wiznet5k(  # pylint: disable=unused-argument
     with mock.patch("sys.implementation", return_value=[9, 0, 0]):
         ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     assert isinstance(ssl_context, adafruit_connection_manager._FakeSSLContext)
+    assert ssl_context in adafruit_connection_manager._global_ssl_contexts.values()
+
+
+def test_get_radio_ssl_context_cpython():
+    radio = adafruit_connection_manager.CPythonNetwork()
+    ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
+    assert isinstance(ssl_context, ssl.SSLContext)
     assert ssl_context in adafruit_connection_manager._global_ssl_contexts.values()
 
 

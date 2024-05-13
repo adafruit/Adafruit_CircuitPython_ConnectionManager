@@ -97,6 +97,10 @@ def create_fake_ssl_context(
     return _FakeSSLContext(iface)
 
 
+class CPythonNetwork:  # pylint: disable=too-few-public-methods
+    """Radio object to use when using ConnectionManager in CPython."""
+
+
 _global_connection_managers = {}
 _global_key_by_socketpool = {}
 _global_socketpools = {}
@@ -157,6 +161,12 @@ def get_radio_socketpool(radio):
 
             if ssl_context is None:
                 ssl_context = create_fake_ssl_context(pool, radio)
+
+        elif class_name == "CPythonNetwork":
+            import socket as pool  # pylint: disable=import-outside-toplevel
+            import ssl  # pylint: disable=import-outside-toplevel
+
+            ssl_context = ssl.create_default_context()
 
         else:
             raise ValueError(f"Unsupported radio class: {class_name}")
