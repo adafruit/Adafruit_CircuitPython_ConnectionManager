@@ -149,15 +149,16 @@ def get_radio_socketpool(radio):
             # versions of the Wiznet5k library or on boards withouut the ssl module
             # see https://docs.circuitpython.org/en/latest/shared-bindings/support_matrix.html
             ssl_context = None
-            cp_version = sys.implementation[1]
-            if pool.SOCK_STREAM == 1 and cp_version >= WIZNET5K_SSL_SUPPORT_VERSION:
-                try:
-                    import ssl  # pylint: disable=import-outside-toplevel
+            if isinstance(sys.implementation, list):
+                cp_version = sys.implementation[1]
+                if pool.SOCK_STREAM == 1 and cp_version >= WIZNET5K_SSL_SUPPORT_VERSION:
+                    try:
+                        import ssl  # pylint: disable=import-outside-toplevel
 
-                    ssl_context = ssl.create_default_context()
-                except ImportError:
-                    # if SSL not on board, default to fake_ssl_context
-                    pass
+                        ssl_context = ssl.create_default_context()
+                    except ImportError:
+                        # if SSL not on board, default to fake_ssl_context
+                        pass
 
             if ssl_context is None:
                 ssl_context = create_fake_ssl_context(pool, radio)
