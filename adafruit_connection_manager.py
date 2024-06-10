@@ -149,8 +149,13 @@ def get_radio_socketpool(radio):
             # versions of the Wiznet5k library or on boards withouut the ssl module
             # see https://docs.circuitpython.org/en/latest/shared-bindings/support_matrix.html
             ssl_context = None
-            cp_version = sys.implementation[1]
-            if pool.SOCK_STREAM == 1 and cp_version >= WIZNET5K_SSL_SUPPORT_VERSION:
+            implementation_name = sys.implementation.name
+            implementation_version = sys.implementation.version
+            if (
+                pool.SOCK_STREAM == 1
+                and implementation_name == "circuitpython"
+                and implementation_version >= WIZNET5K_SSL_SUPPORT_VERSION
+            ):
                 try:
                     import ssl  # pylint: disable=import-outside-toplevel
 
