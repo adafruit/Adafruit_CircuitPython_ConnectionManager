@@ -67,7 +67,7 @@ class _FakeSSLContext:
     def __init__(self, iface: InterfaceType) -> None:
         self._iface = iface
 
-    def wrap_socket(  # pylint: disable=unused-argument
+    def wrap_socket(
         self, socket: CircuitPythonSocketType, server_hostname: Optional[str] = None
     ) -> _FakeSSLSocket:
         """Return the same socket"""
@@ -97,7 +97,7 @@ def create_fake_ssl_context(
     return _FakeSSLContext(iface)
 
 
-class CPythonNetwork:  # pylint: disable=too-few-public-methods
+class CPythonNetwork:
     """Radio object to use when using ConnectionManager in CPython."""
 
 
@@ -127,21 +127,21 @@ def get_radio_socketpool(radio):
     if key not in _global_socketpools:
         class_name = radio.__class__.__name__
         if class_name == "Radio":
-            import ssl  # pylint: disable=import-outside-toplevel
+            import ssl
 
-            import socketpool  # pylint: disable=import-outside-toplevel
+            import socketpool
 
             pool = socketpool.SocketPool(radio)
             ssl_context = ssl.create_default_context()
 
         elif class_name == "ESP_SPIcontrol":
-            import adafruit_esp32spi.adafruit_esp32spi_socketpool as socketpool  # pylint: disable=import-outside-toplevel
+            import adafruit_esp32spi.adafruit_esp32spi_socketpool as socketpool
 
             pool = socketpool.SocketPool(radio)
             ssl_context = create_fake_ssl_context(pool, radio)
 
         elif class_name == "WIZNET5K":
-            import adafruit_wiznet5k.adafruit_wiznet5k_socketpool as socketpool  # pylint: disable=import-outside-toplevel
+            import adafruit_wiznet5k.adafruit_wiznet5k_socketpool as socketpool
 
             pool = socketpool.SocketPool(radio)
 
@@ -157,7 +157,7 @@ def get_radio_socketpool(radio):
                 and implementation_version >= WIZNET5K_SSL_SUPPORT_VERSION
             ):
                 try:
-                    import ssl  # pylint: disable=import-outside-toplevel
+                    import ssl
 
                     ssl_context = ssl.create_default_context()
                 except ImportError:
@@ -168,8 +168,8 @@ def get_radio_socketpool(radio):
                 ssl_context = create_fake_ssl_context(pool, radio)
 
         elif class_name == "CPythonNetwork":
-            import socket as pool  # pylint: disable=import-outside-toplevel
-            import ssl  # pylint: disable=import-outside-toplevel
+            import socket as pool
+            import ssl
 
             ssl_context = ssl.create_default_context()
 
@@ -224,7 +224,7 @@ class ConnectionManager:
         self._key_by_managed_socket[socket] = key
         self._managed_socket_by_key[key] = socket
 
-    def _get_connected_socket(  # pylint: disable=too-many-arguments
+    def _get_connected_socket(
         self,
         addr_info: List[Tuple[int, int, int, str, Tuple[str, int]]],
         host: str,
@@ -233,7 +233,6 @@ class ConnectionManager:
         is_ssl: bool,
         ssl_context: Optional[SSLContextType] = None,
     ):
-
         socket = self._socket_pool.socket(addr_info[0], addr_info[1])
 
         if is_ssl:
@@ -284,7 +283,6 @@ class ConnectionManager:
             raise RuntimeError("Socket not managed")
         self._available_sockets.add(socket)
 
-    # pylint: disable=too-many-arguments
     def get_socket(
         self,
         host: str,
@@ -320,23 +318,17 @@ class ConnectionManager:
                 self._available_sockets.remove(socket)
                 return socket
 
-            raise RuntimeError(
-                f"An existing socket is already connected to {proto}//{host}:{port}"
-            )
+            raise RuntimeError(f"An existing socket is already connected to {proto}//{host}:{port}")
 
         if proto == "https:":
             is_ssl = True
         if is_ssl and not ssl_context:
             raise ValueError("ssl_context must be provided if using ssl")
 
-        addr_info = self._socket_pool.getaddrinfo(
-            host, port, 0, self._socket_pool.SOCK_STREAM
-        )[0]
+        addr_info = self._socket_pool.getaddrinfo(host, port, 0, self._socket_pool.SOCK_STREAM)[0]
 
         try:
-            socket = self._get_connected_socket(
-                addr_info, host, port, timeout, is_ssl, ssl_context
-            )
+            socket = self._get_connected_socket(addr_info, host, port, timeout, is_ssl, ssl_context)
             self._register_connected_socket(key, socket)
             return socket
         except (MemoryError, OSError, RuntimeError):
@@ -374,7 +366,7 @@ def connection_manager_close_all(
         if connection_manager is None:
             raise RuntimeError("SocketPool not managed")
 
-        connection_manager._free_sockets(force=True)  # pylint: disable=protected-access
+        connection_manager._free_sockets(force=True)
 
         if not release_references:
             continue

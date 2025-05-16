@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Protocol Tests """
+"""Protocol Tests"""
 
 import mocket
 import pytest
@@ -32,9 +32,7 @@ def test_connect_https():
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # verify a HTTPS call changes the port to 443
-    connection_manager.get_socket(
-        mocket.MOCK_HOST_1, 443, "https:", ssl_context=mock_ssl_context
-    )
+    connection_manager.get_socket(mocket.MOCK_HOST_1, 443, "https:", ssl_context=mock_ssl_context)
     mock_socket_1.connect.assert_called_once_with((mocket.MOCK_HOST_1, 443))
     mock_ssl_context.wrap_socket.assert_called_once()
 

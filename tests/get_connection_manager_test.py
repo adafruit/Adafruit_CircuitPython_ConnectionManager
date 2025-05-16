@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Get Connection Manager Tests """
+"""Get Connection Manager Tests"""
 
 import mocket
 
@@ -18,7 +18,7 @@ def test_get_connection_manager():
     assert connection_manager_1 == connection_manager_2
 
 
-def test_different_connection_manager_different_pool(  # pylint: disable=unused-argument
+def test_different_connection_manager_different_pool(
     circuitpython_socketpool_module, adafruit_esp32spi_socketpool_module
 ):
     radio_wifi = mocket.MockRadio.Radio()
@@ -27,11 +27,7 @@ def test_different_connection_manager_different_pool(  # pylint: disable=unused-
     socket_pool_wifi = adafruit_connection_manager.get_radio_socketpool(radio_wifi)
     socket_pool_esp = adafruit_connection_manager.get_radio_socketpool(radio_esp)
 
-    connection_manager_wifi = adafruit_connection_manager.get_connection_manager(
-        socket_pool_wifi
-    )
-    connection_manager_esp = adafruit_connection_manager.get_connection_manager(
-        socket_pool_esp
-    )
+    connection_manager_wifi = adafruit_connection_manager.get_connection_manager(socket_pool_wifi)
+    connection_manager_esp = adafruit_connection_manager.get_connection_manager(socket_pool_esp)
 
     assert connection_manager_wifi != connection_manager_esp

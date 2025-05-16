@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Setup Tests """
+"""Setup Tests"""
 
 import sys
 
@@ -17,22 +17,20 @@ class SocketPool:
         pass
 
     @property
-    def __name__(self):
+    def __name__(self):  # noqa: PLW3201
         return self.name
 
 
-class ESP32SPI_SocketPool(SocketPool):  # pylint: disable=too-few-public-methods
+class ESP32SPI_SocketPool(SocketPool):
     name = "adafruit_esp32spi_socketpool"
 
 
-class WIZNET5K_SocketPool(SocketPool):  # pylint: disable=too-few-public-methods
+class WIZNET5K_SocketPool(SocketPool):
     name = "adafruit_wiznet5k_socketpool"
     SOCK_STREAM = 0x21
 
 
-class WIZNET5K_With_SSL_SocketPool(
-    SocketPool
-):  # pylint: disable=too-few-public-methods
+class WIZNET5K_With_SSL_SocketPool(SocketPool):
     name = "adafruit_wiznet5k_socketpool"
     SOCK_STREAM = 0x1
 
@@ -52,9 +50,7 @@ def adafruit_esp32spi_socketpool_module():
     esp32spi_socket_module = type(sys)("adafruit_esp32spi_socketpool")
     esp32spi_socket_module.SocketPool = ESP32SPI_SocketPool
     sys.modules["adafruit_esp32spi"] = esp32spi_module
-    sys.modules["adafruit_esp32spi.adafruit_esp32spi_socketpool"] = (
-        esp32spi_socket_module
-    )
+    sys.modules["adafruit_esp32spi.adafruit_esp32spi_socketpool"] = esp32spi_socket_module
     yield
     del sys.modules["adafruit_esp32spi"]
     del sys.modules["adafruit_esp32spi.adafruit_esp32spi_socketpool"]
@@ -66,9 +62,7 @@ def adafruit_wiznet5k_socketpool_module():
     wiznet5k_socketpool_module = type(sys)("adafruit_wiznet5k_socketpool")
     wiznet5k_socketpool_module.SocketPool = WIZNET5K_SocketPool
     sys.modules["adafruit_wiznet5k"] = wiznet5k_module
-    sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"] = (
-        wiznet5k_socketpool_module
-    )
+    sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"] = wiznet5k_socketpool_module
     yield
     del sys.modules["adafruit_wiznet5k"]
     del sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"]
@@ -80,9 +74,7 @@ def adafruit_wiznet5k_with_ssl_socketpool_module():
     wiznet5k_socketpool_module = type(sys)("adafruit_wiznet5k_socketpool")
     wiznet5k_socketpool_module.SocketPool = WIZNET5K_With_SSL_SocketPool
     sys.modules["adafruit_wiznet5k"] = wiznet5k_module
-    sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"] = (
-        wiznet5k_socketpool_module
-    )
+    sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"] = wiznet5k_socketpool_module
     yield
     del sys.modules["adafruit_wiznet5k"]
     del sys.modules["adafruit_wiznet5k.adafruit_wiznet5k_socketpool"]
