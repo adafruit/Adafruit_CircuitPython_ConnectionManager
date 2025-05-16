@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Get socketpool and ssl_context Tests """
+"""Get socketpool and ssl_context Tests"""
 
 import ssl
 from unittest import mock
@@ -25,7 +25,7 @@ def test__get_radio_hash_key_not_hashable():
         assert adafruit_connection_manager._get_radio_hash_key(radio) == "Radio"
 
 
-def test_get_radio_socketpool_wifi(  # pylint: disable=unused-argument
+def test_get_radio_socketpool_wifi(
     circuitpython_socketpool_module,
 ):
     radio = mocket.MockRadio.Radio()
@@ -34,7 +34,7 @@ def test_get_radio_socketpool_wifi(  # pylint: disable=unused-argument
     assert socket_pool in adafruit_connection_manager._global_socketpools.values()
 
 
-def test_get_radio_socketpool_esp32spi(  # pylint: disable=unused-argument
+def test_get_radio_socketpool_esp32spi(
     adafruit_esp32spi_socketpool_module,
 ):
     radio = mocket.MockRadio.ESP_SPIcontrol()
@@ -43,7 +43,7 @@ def test_get_radio_socketpool_esp32spi(  # pylint: disable=unused-argument
     assert socket_pool in adafruit_connection_manager._global_socketpools.values()
 
 
-def test_get_radio_socketpool_wiznet5k(  # pylint: disable=unused-argument
+def test_get_radio_socketpool_wiznet5k(
     adafruit_wiznet5k_socketpool_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
@@ -67,7 +67,7 @@ def test_get_radio_socketpool_unsupported():
     assert "Unsupported radio class" in str(context)
 
 
-def test_get_radio_socketpool_returns_same_one(  # pylint: disable=unused-argument
+def test_get_radio_socketpool_returns_same_one(
     circuitpython_socketpool_module,
 ):
     radio = mocket.MockRadio.Radio()
@@ -77,7 +77,7 @@ def test_get_radio_socketpool_returns_same_one(  # pylint: disable=unused-argume
     assert socket_pool_1 in adafruit_connection_manager._global_socketpools.values()
 
 
-def test_get_radio_ssl_context_wifi(  # pylint: disable=unused-argument
+def test_get_radio_ssl_context_wifi(
     circuitpython_socketpool_module,
 ):
     radio = mocket.MockRadio.Radio()
@@ -86,7 +86,7 @@ def test_get_radio_ssl_context_wifi(  # pylint: disable=unused-argument
     assert ssl_context in adafruit_connection_manager._global_ssl_contexts.values()
 
 
-def test_get_radio_ssl_context_esp32spi(  # pylint: disable=unused-argument
+def test_get_radio_ssl_context_esp32spi(
     adafruit_esp32spi_socketpool_module,
 ):
     radio = mocket.MockRadio.ESP_SPIcontrol()
@@ -95,7 +95,7 @@ def test_get_radio_ssl_context_esp32spi(  # pylint: disable=unused-argument
     assert ssl_context in adafruit_connection_manager._global_ssl_contexts.values()
 
 
-def test_get_radio_ssl_context_wiznet5k(  # pylint: disable=unused-argument
+def test_get_radio_ssl_context_wiznet5k(
     adafruit_wiznet5k_socketpool_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
@@ -119,7 +119,7 @@ def test_get_radio_ssl_context_unsupported():
     assert "Unsupported radio class" in str(context)
 
 
-def test_get_radio_ssl_context_returns_same_one(  # pylint: disable=unused-argument
+def test_get_radio_ssl_context_returns_same_one(
     circuitpython_socketpool_module,
 ):
     radio = mocket.MockRadio.Radio()

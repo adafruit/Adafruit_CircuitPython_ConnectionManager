@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Close Socket Tests """
+"""Close Socket Tests"""
 
 import mocket
 import pytest

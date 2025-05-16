@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" Get Socket Tests """
+"""Get Socket Tests"""
 
 from unittest import mock
 
@@ -40,15 +40,11 @@ def test_get_socket_different_session():
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # get socket
-    socket = connection_manager.get_socket(
-        mocket.MOCK_HOST_1, 80, "http:", session_id="1"
-    )
+    socket = connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:", session_id="1")
     assert socket == mock_socket_1
 
     # get socket on different session
-    socket = connection_manager.get_socket(
-        mocket.MOCK_HOST_1, 80, "http:", session_id="2"
-    )
+    socket = connection_manager.get_socket(mocket.MOCK_HOST_1, 80, "http:", session_id="2")
     assert socket == mock_socket_2
 
 
@@ -217,7 +213,7 @@ def test_get_socket_runtime_error_ties_again_only_once():
     free_sockets_mock.assert_called_once()
 
 
-def test_fake_ssl_context_connect(  # pylint: disable=unused-argument
+def test_fake_ssl_context_connect(
     adafruit_esp32spi_socketpool_module,
 ):
     mock_pool = mocket.MocketPool()
@@ -236,7 +232,7 @@ def test_fake_ssl_context_connect(  # pylint: disable=unused-argument
     socket._socket.connect.assert_called_once()
 
 
-def test_fake_ssl_context_connect_error(  # pylint: disable=unused-argument
+def test_fake_ssl_context_connect_error(
     adafruit_esp32spi_socketpool_module,
 ):
     mock_pool = mocket.MocketPool()
@@ -249,8 +245,6 @@ def test_fake_ssl_context_connect_error(  # pylint: disable=unused-argument
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     with pytest.raises(OSError) as context:
-        connection_manager.get_socket(
-            mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
-        )
+        connection_manager.get_socket(mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context)
     assert "12" in str(context)
     assert "RuntimeError 1" in str(context)

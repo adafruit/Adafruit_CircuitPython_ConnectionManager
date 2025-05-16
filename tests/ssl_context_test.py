@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Unlicense
 
-""" SLL Context Tests """
+"""SLL Context Tests"""
 
 import ssl
 from collections import namedtuple
@@ -17,7 +17,7 @@ from adafruit_connection_manager import WIZNET5K_SSL_SUPPORT_VERSION
 SimpleNamespace = namedtuple("SimpleNamespace", "name version")
 
 
-def test_connect_esp32spi_https(  # pylint: disable=unused-argument
+def test_connect_esp32spi_https(
     adafruit_esp32spi_socketpool_module,
 ):
     mock_pool = mocket.MocketPool()
@@ -42,7 +42,7 @@ def test_connect_esp32spi_https(  # pylint: disable=unused-argument
     assert isinstance(socket, adafruit_connection_manager._FakeSSLSocket)
 
 
-def test_connect_wifi_https(  # pylint: disable=unused-argument
+def test_connect_wifi_https(
     circuitpython_socketpool_module,
 ):
     radio = mocket.MockRadio.Radio()
@@ -50,27 +50,23 @@ def test_connect_wifi_https(  # pylint: disable=unused-argument
     assert isinstance(ssl_context, ssl.SSLContext)
 
 
-def test_connect_wiznet5k_https_not_supported(  # pylint: disable=unused-argument
+def test_connect_wiznet5k_https_not_supported(
     adafruit_wiznet5k_socketpool_module,
 ):
     mock_pool = mocket.MocketPool()
     radio = mocket.MockRadio.WIZNET5K()
     old_version = (WIZNET5K_SSL_SUPPORT_VERSION[0] - 1, 0, 0)
-    with mock.patch(
-        "sys.implementation", SimpleNamespace("circuitpython", old_version)
-    ):
+    with mock.patch("sys.implementation", SimpleNamespace("circuitpython", old_version)):
         ssl_context = adafruit_connection_manager.get_radio_ssl_context(radio)
     connection_manager = adafruit_connection_manager.ConnectionManager(mock_pool)
 
     # verify a HTTPS call for a board without built in WiFi and SSL support errors
     with pytest.raises(ValueError) as context:
-        connection_manager.get_socket(
-            mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context
-        )
+        connection_manager.get_socket(mocket.MOCK_HOST_1, 443, "https:", ssl_context=ssl_context)
     assert "This radio does not support TLS/HTTPS" in str(context)
 
 
-def test_connect_wiznet5k_https_supported(  # pylint: disable=unused-argument
+def test_connect_wiznet5k_https_supported(
     adafruit_wiznet5k_with_ssl_socketpool_module,
 ):
     radio = mocket.MockRadio.WIZNET5K()
