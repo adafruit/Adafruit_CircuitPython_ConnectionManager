@@ -275,14 +275,14 @@ def common_failure(exc):
 def check_group(groups, group_name):
     print(f"\nRunning {group_name}")
     for group in groups:
-        print(f'\n - {group["heading"]}')
+        print(f"\n - {group['heading']}")
         success = group["success"]
         fail = group["fail"]
         for subdomain in group["subdomains"]:
             if "host" in subdomain:
                 host = subdomain["host"]
             else:
-                host = f'{subdomain["subdomain"]}.badssl.com'
+                host = f"{subdomain['subdomain']}.badssl.com"
             port = subdomain.get("port", 443)
             exc = None
             start_time = time.monotonic()
